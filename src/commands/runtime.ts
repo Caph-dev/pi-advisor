@@ -56,6 +56,7 @@ class CommandRuntime implements CommandRuntimeContract {
   manualProgressSequence = 0;
   pendingExecutorModelRef: string | undefined;
   suppressModelSelectionSync = false;
+  toolAvailabilityRevision = 0;
   private lastSameModelDisabled: boolean | undefined;
 
   constructor(pi: ExtensionAPI, dependencies: CommandDependencies = {}) {
@@ -91,6 +92,10 @@ class CommandRuntime implements CommandRuntimeContract {
 
   flowEnabled() {
     return this.pi.getActiveTools().includes("ask_advisor");
+  }
+
+  noteAdvisorToolsStateChange() {
+    this.toolAvailabilityRevision += 1;
   }
 
   resetSameModelNotice() {

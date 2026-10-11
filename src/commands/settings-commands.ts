@@ -4,9 +4,10 @@ import {
   alwaysOnRef,
   getAdvisorSettings,
   getPersistedModelRefs,
+  setAdvisorToolsEnabledRef,
   setAlwaysOnRef,
 } from "../config/state.ts";
-import { saveConfig } from "../config/storage.ts";
+import { loadConfig, saveConfig } from "../config/storage.ts";
 import {
   resolveJevTransport,
   resolveJevTransportFor,
@@ -15,6 +16,7 @@ import {
 import { AdvisorSettingsSelector } from "../ui/settings-selector.ts";
 import type { AdvisorSettings } from "../ui/types.ts";
 import { loadCommandConfig } from "./activation-preparation.ts";
+import { setAdvisorToolsActive } from "./advisor-tools.ts";
 import {
   CONTEXT_PRESETS,
   EFFORT_LEVELS,
@@ -37,6 +39,7 @@ const persistJevSettings = (
     return false;
   }
   try {
+    setAdvisorToolsActive(runtime.pi, settings.advisorToolsEnabled ?? true);
     runtime.updateSameModelNotice(ctx);
     runtime.updateAdvisorUsageStatus(ctx);
   } catch (error) {
@@ -75,15 +78,33 @@ export const registerSettingsCommands = (runtime: CommandRuntime) => {
             modelRefs: getConfiguredModelRefs(ctx),
             onCancel: () => done(undefined),
             onChange: (settings) => {
+              const toolsWereEnabled =
+                getAdvisorSettings().advisorToolsEnabled ?? true;
+              const toolsEnabled = settings.advisorToolsEnabled ?? true;
               try {
                 saveAdvisorSettings(ctx, settings);
+                if (toolsWereEnabled !== toolsEnabled) {
+                  runtime.noteAdvisorToolsStateChange();
+                }
+                setAdvisorToolsActive(runtime.pi, toolsEnabled);
                 runtime.updateSameModelNotice(ctx);
                 runtime.updateAdvisorUsageStatus(ctx);
               } catch (error) {
+                const toolsDisabled =
+                  toolsWereEnabled && settings.advisorToolsEnabled === false;
+                if (toolsDisabled) {
+                  runtime.noteAdvisorToolsStateChange();
+                  setAdvisorToolsEnabledRef(false);
+                  setAlwaysOnRef(false);
+                  setAdvisorToolsActive(runtime.pi, false);
+                  runtime.resetSameModelNotice();
+                }
                 const message =
                   error instanceof Error ? error.message : String(error);
                 ctx.ui.notify(
-                  `Could not save Advisor settings: ${message}`,
+                  toolsDisabled
+                    ? `Could not save Advisor settings; tools remain disabled for this session. ${message}`
+                    : `Could not save Advisor settings: ${message}`,
                   "error"
                 );
               }
@@ -101,30 +122,48 @@ export const registerSettingsCommands = (runtime: CommandRuntime) => {
   });
 
   runtime.pi.registerCommand("advisor-off", {
-    description: "Disable on-demand Advisor calls; keep the current model",
+    description:
+      "Disable model-facing Advisor tools across sessions; keep the current model",
     handler: (_args, ctx) => {
-      runtime.pi.setActiveTools(
-        runtime.pi
-          .getActiveTools()
-          .filter(
-            (name) =>
-              name !== "ask_advisor" && name !== "record_advisor_outcome"
-          )
-      );
+      runtime.noteAdvisorToolsStateChange();
+      setAdvisorToolsActive(runtime.pi, false);
       runtime.resetSameModelNotice();
-      // Leaving alwaysOn set would silently reactivate the flow next session.
-      const wasAlwaysOn = alwaysOnRef;
-      if (wasAlwaysOn) {
-        const persisted = getPersistedModelRefs();
+      try {
+        loadConfig(ctx);
+      } catch (error) {
+        setAdvisorToolsEnabledRef(false);
         setAlwaysOnRef(false);
+        const message = error instanceof Error ? error.message : String(error);
+        notify(
+          ctx,
+          `Advisor tools disabled for this session, but configuration could not be reloaded: ${message}`,
+          "error"
+        );
+        return Promise.resolve();
+      }
+      const wasAlwaysOn = alwaysOnRef;
+      const persisted = getPersistedModelRefs();
+      setAdvisorToolsEnabledRef(false);
+      if (wasAlwaysOn) {
+        setAlwaysOnRef(false);
+      }
+      try {
         saveConfig(ctx, {
           persistAdvisor: Boolean(persisted.advisor),
           persistExecutor: Boolean(persisted.executor),
         });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        notify(
+          ctx,
+          `Advisor tools disabled for this session, but the setting could not be saved: ${message}`,
+          "error"
+        );
+        return Promise.resolve();
       }
       notify(
         ctx,
-        `Advisor flow disabled. Current model unchanged.${wasAlwaysOn ? " Always on turned off." : ""}`,
+        `Advisor tools disabled. Current model unchanged.${wasAlwaysOn ? " Always on turned off." : ""}`,
         "info"
       );
       return Promise.resolve();

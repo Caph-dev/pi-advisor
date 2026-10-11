@@ -65,6 +65,7 @@ var advisorMaxCallsPerSessionRef;
 var advisorModelWhitelistRef = [];
 var advisorSessionSummaryRef = false;
 var simpleModeRef = false;
+var advisorToolsEnabledRef = true;
 var alwaysOnRef = false;
 var advisorFailureModeRef = "block-session";
 var advisorHerdrIntegrationRef = true;
@@ -164,6 +165,9 @@ var setAdvisorSessionSummaryRef = (enabled) => {
 var setSimpleModeRef = (enabled) => {
   simpleModeRef = enabled;
 };
+var setAdvisorToolsEnabledRef = (enabled) => {
+  advisorToolsEnabledRef = enabled;
+};
 var setAlwaysOnRef = (enabled) => {
   alwaysOnRef = enabled;
 };
@@ -253,6 +257,7 @@ var setShowUsageFooterRef = (enabled) => {
   showUsageFooterRef = enabled;
 };
 var getAdvisorSettings = () => ({
+  advisorToolsEnabled: advisorToolsEnabledRef,
   agentsMdContext: advisorAgentsMdContextRef,
   alwaysOn: alwaysOnRef,
   autoLoopGate: advisorAutoLoopGateRef,
@@ -785,6 +790,12 @@ var CONFIG_SCHEMA = {
     type: "number",
     validate: isValidToolResultMaxLines
   },
+  advisorToolsEnabled: {
+    accepted: "true or false",
+    current: () => advisorToolsEnabledRef,
+    persisted: true,
+    type: "boolean"
+  },
   advisorTrackedFileContent: {
     accepted: "true or false",
     current: () => advisorTrackedFileContentRef,
@@ -947,6 +958,7 @@ var resetDefaults = () => {
   setAdvisorModelWhitelistRef([]);
   setAdvisorSessionSummaryRef(false);
   setSimpleModeRef(false);
+  setAdvisorToolsEnabledRef(true);
   setAlwaysOnRef(false);
   setAdvisorFailureModeRef("block-session");
   setAdvisorHerdrIntegrationRef(true);
@@ -1013,6 +1025,7 @@ var applyConfig = (config) => {
   applyOptionalConfig(config, "showUsageDetails", setShowUsageDetailsRef);
   applyOptionalConfig(config, "showUsageFooter", setShowUsageFooterRef);
   applyOptionalConfig(config, "simpleMode", setSimpleModeRef);
+  applyOptionalConfig(config, "advisorToolsEnabled", setAdvisorToolsEnabledRef);
   applyOptionalConfig(config, "alwaysOn", setAlwaysOnRef);
   applyOptionalConfig(config, "gateFailureMode", setAdvisorFailureModeRef);
   applyOptionalConfig(config, "advisorHerdrIntegration", setAdvisorHerdrIntegrationRef);
@@ -5309,6 +5322,7 @@ class CommandRuntime {
   manualProgressSequence = 0;
   pendingExecutorModelRef;
   suppressModelSelectionSync = false;
+  toolAvailabilityRevision = 0;
   lastSameModelDisabled;
   constructor(pi, dependencies = {}) {
     this.pi = pi;
@@ -5319,6 +5333,9 @@ class CommandRuntime {
   }
   flowEnabled() {
     return this.pi.getActiveTools().includes("ask_advisor");
+  }
+  noteAdvisorToolsStateChange() {
+    this.toolAvailabilityRevision += 1;
   }
   resetSameModelNotice() {
     this.lastSameModelDisabled = undefined;
@@ -5402,8 +5419,28 @@ var prepareActivationModels = async (runtime, ctx, announce, executorOverride, a
   return { pendingExecutor: plan.pendingExecutor, pickedModels: true };
 };
 
+// src/commands/advisor-tools.ts
+var ADVISOR_TOOL_NAMES = new Set(["ask_advisor", "record_advisor_outcome"]);
+var setAdvisorToolsActive = (pi, enabled) => {
+  const current = pi.getActiveTools();
+  const next = current.filter((name) => enabled || !ADVISOR_TOOL_NAMES.has(name));
+  if (enabled) {
+    for (const name of ADVISOR_TOOL_NAMES) {
+      if (!next.includes(name)) {
+        next.push(name);
+      }
+    }
+  }
+  if (next.length !== current.length || next.some((name, index) => name !== current[index])) {
+    pi.setActiveTools(next);
+  }
+};
+
 // src/commands/activation.ts
-var resolveActivationModels = async (runtime, ctx) => {
+var resolveActivationModels = async (runtime, ctx, canContinue) => {
+  if (!canContinue()) {
+    return { cancelled: true };
+  }
   const executor = findConfiguredModel(ctx, executorRef);
   if (!executor) {
     return {
@@ -5417,6 +5454,9 @@ var resolveActivationModels = async (runtime, ctx) => {
     };
   }
   const advisorAuth = await ctx.modelRegistry.getApiKeyAndHeaders(advisor);
+  if (!canContinue()) {
+    return { cancelled: true };
+  }
   if (!(advisorAuth.ok && advisorAuth.apiKey)) {
     return { error: `No API key for Advisor ${advisorRef}` };
   }
@@ -5425,10 +5465,42 @@ var resolveActivationModels = async (runtime, ctx) => {
   }
   return {};
 };
+var restoreActivationRefsIfCurrent = (canContinue, restoreRefs) => {
+  if (canContinue()) {
+    restoreRefs();
+  }
+};
+var liveRefSnapshot = () => ({
+  advisor: advisorRef,
+  advisorEffort: advisorEffortRef,
+  contextMaxChars: contextMaxCharsRef,
+  executor: executorRef,
+  executorEffort: executorEffortRef
+});
+var persistSuccessfulActivation = (ctx, shouldSave, reenableTools, restoreRefs) => {
+  if (!shouldSave) {
+    return true;
+  }
+  try {
+    saveConfig(ctx, { persistAdvisor: true, persistExecutor: true });
+  } catch (saveError) {
+    if (!reenableTools) {
+      throw saveError;
+    }
+    setAdvisorToolsEnabledRef(false);
+    restoreRefs();
+    const message = saveError instanceof Error ? saveError.message : String(saveError);
+    notify(ctx, `Could not save Advisor activation: ${message}`, "error");
+    return false;
+  }
+  return true;
+};
 var activateAdvisor = async (runtime, args, ctx, announce = true) => {
   if (!loadCommandConfig(ctx)) {
     return;
   }
+  const { toolAvailabilityRevision } = runtime;
+  const canContinue = () => runtime.toolAvailabilityRevision === toolAvailabilityRevision;
   const previous = {
     advisor: advisorRef,
     advisorEffort: advisorEffortRef,
@@ -5436,46 +5508,62 @@ var activateAdvisor = async (runtime, args, ctx, announce = true) => {
     executor: executorRef,
     executorEffort: executorEffortRef
   };
-  const restoreRefs = () => {
-    setAdvisorRef(previous.advisor);
-    setAdvisorEffortRef(previous.advisorEffort);
-    setContextMaxCharsRef(previous.contextMaxChars);
-    setExecutorRef(previous.executor);
-    setExecutorEffortRef(previous.executorEffort);
+  const liveSnapshot = liveRefSnapshot;
+  const restoreRefs = (attempted) => {
+    if (advisorRef === attempted.advisor) {
+      setAdvisorRef(previous.advisor);
+    }
+    if (advisorEffortRef === attempted.advisorEffort) {
+      setAdvisorEffortRef(previous.advisorEffort);
+    }
+    if (contextMaxCharsRef === attempted.contextMaxChars) {
+      setContextMaxCharsRef(previous.contextMaxChars);
+    }
+    if (executorRef === attempted.executor) {
+      setExecutorRef(previous.executor);
+    }
+    if (executorEffortRef === attempted.executorEffort) {
+      setExecutorEffortRef(previous.executorEffort);
+    }
   };
+  let attempted = liveRefSnapshot();
   const executorOverride = hasExecutorOverride(args);
   const advisorOverride = hasAdvisorOverride(args);
   const argumentError = parseArgs(args);
   if (argumentError) {
-    restoreRefs();
+    attempted = liveRefSnapshot();
+    restoreRefs(attempted);
     notify(ctx, argumentError, "error");
     return;
   }
   const prepared = await prepareActivationModels(runtime, ctx, announce, executorOverride, advisorOverride);
   if (!prepared) {
-    restoreRefs();
+    attempted = liveRefSnapshot();
+    restoreActivationRefsIfCurrent(canContinue, () => restoreRefs(attempted));
     return;
   }
-  const { error } = await resolveActivationModels(runtime, ctx);
+  const { cancelled, error } = await resolveActivationModels(runtime, ctx, canContinue);
+  if (cancelled || !canContinue()) {
+    return;
+  }
   if (error) {
-    restoreRefs();
+    restoreRefs(attempted);
     notify(ctx, error, "error");
     return;
   }
-  if (args.trim() || prepared.pickedModels || prepared.pendingExecutor) {
-    saveConfig(ctx, { persistAdvisor: true, persistExecutor: true });
+  const reenableTools = !advisorToolsEnabledRef;
+  if (reenableTools) {
+    setAdvisorToolsEnabledRef(true);
+  }
+  const shouldSave = Boolean(args.trim() || prepared.pickedModels || prepared.pendingExecutor || reenableTools);
+  if (!persistSuccessfulActivation(ctx, shouldSave, reenableTools, () => restoreRefs(liveRefSnapshot()))) {
+    return;
   }
   runtime.pendingExecutorModelRef = undefined;
   if (executorEffortRef && !isMarkedSubagent()) {
     runtime.pi.setThinkingLevel(executorEffortRef);
   }
-  if (!runtime.flowEnabled()) {
-    runtime.pi.setActiveTools([
-      ...runtime.pi.getActiveTools(),
-      "ask_advisor",
-      "record_advisor_outcome"
-    ]);
-  }
+  setAdvisorToolsActive(runtime.pi, true);
   const activeModel = isMarkedSubagent() ? ctx.model : findConfiguredModel(ctx, executorRef);
   runtime.updateSameModelNotice(ctx, activeModel);
   if (announce) {
@@ -5494,12 +5582,19 @@ var registerCommandLifecycle = (runtime, activateAdvisor) => {
     runtime.resetSameModelNotice();
     try {
       loadConfig(ctx);
+      if (!advisorToolsEnabledRef) {
+        setAdvisorToolsActive(runtime.pi, false);
+        runtime.updateSameModelNotice(ctx);
+        return;
+      }
       if (alwaysOnRef) {
+        setAdvisorToolsActive(runtime.pi, false);
         await activateAdvisor("", ctx, false);
       } else {
         runtime.updateSameModelNotice(ctx);
       }
     } catch (error) {
+      setAdvisorToolsActive(runtime.pi, false);
       const message = error instanceof Error ? error.message : String(error);
       notify(ctx, `Advisor activation failed: ${message}`, "error");
     }
@@ -8913,8 +9008,15 @@ var createSettingsItems = ({
       values: presets.map((preset) => preset.label)
     },
     {
+      currentValue: settingValue(settings.advisorToolsEnabled, true),
+      description: "Allow the model to call the Advisor tools; /advisor-off disables them across sessions.",
+      id: "advisorToolsEnabled",
+      label: "Advisor tools",
+      values: TOGGLE_VALUES
+    },
+    {
       currentValue: settingValue(settings.simpleMode, false),
-      description: "Keep the Advisor available on demand without automatic gates or blocks.",
+      description: "Keep enabled Advisor tools available on demand without automatic gates or blocks.",
       id: "simpleMode",
       label: "Simple mode",
       values: TOGGLE_VALUES
@@ -9134,10 +9236,13 @@ var BOOLEAN_SETTING_IDS = new Set(BOOLEAN_SETTING_FIELDS);
 var parseModelWhitelist = (value) => [
   ...new Set(value.split(",").map((model) => model.trim()).filter(Boolean))
 ];
-var applyCoreMutation = (settings, id, value, presets) => {
+var applyModeMutation = (settings, id, value) => {
   switch (id) {
-    case "context": {
-      settings.contextMaxChars = presets.find((preset) => preset.label === value)?.value ?? settings.contextMaxChars;
+    case "advisorToolsEnabled": {
+      settings.advisorToolsEnabled = value === "On";
+      if (!settings.advisorToolsEnabled) {
+        settings.alwaysOn = false;
+      }
       return true;
     }
     case "simpleMode": {
@@ -9146,6 +9251,20 @@ var applyCoreMutation = (settings, id, value, presets) => {
     }
     case "alwaysOn": {
       settings.alwaysOn = value === "On";
+      if (settings.alwaysOn) {
+        settings.advisorToolsEnabled = true;
+      }
+      return true;
+    }
+    default: {
+      return false;
+    }
+  }
+};
+var applyCoreMutation = (settings, id, value, presets) => {
+  switch (id) {
+    case "context": {
+      settings.contextMaxChars = presets.find((preset) => preset.label === value)?.value ?? settings.contextMaxChars;
       return true;
     }
     case "fallbackModel": {
@@ -9260,6 +9379,9 @@ var applyJevMutation = (settings, id, value) => {
   }
 };
 var mutateAdvisorSettings = (settings, id, value, presets) => {
+  if (applyModeMutation(settings, id, value)) {
+    return;
+  }
   if (applyCoreMutation(settings, id, value, presets)) {
     return;
   }
@@ -9467,6 +9589,7 @@ var applySessionSettings = (settings) => {
   setShowUsageDetailsRef(settings.showUsageDetails ?? true);
   setShowUsageFooterRef(settings.showUsageFooter ?? false);
   setSimpleModeRef(settings.simpleMode ?? false);
+  setAdvisorToolsEnabledRef(settings.advisorToolsEnabled ?? true);
   setAlwaysOnRef(settings.alwaysOn ?? false);
   setAdvisorFailureModeRef(settings.failureMode ?? "block-session");
   setAdvisorHerdrIntegrationRef(settings.herdrIntegration ?? true);
@@ -9531,6 +9654,7 @@ var persistJevSettings = (ctx, settings, runtime) => {
     return false;
   }
   try {
+    setAdvisorToolsActive(runtime.pi, settings.advisorToolsEnabled ?? true);
     runtime.updateSameModelNotice(ctx);
     runtime.updateAdvisorUsageStatus(ctx);
   } catch (error) {
@@ -9558,13 +9682,27 @@ var registerSettingsCommands = (runtime) => {
         modelRefs: getConfiguredModelRefs(ctx),
         onCancel: () => done(undefined),
         onChange: (settings) => {
+          const toolsWereEnabled = getAdvisorSettings().advisorToolsEnabled ?? true;
+          const toolsEnabled = settings.advisorToolsEnabled ?? true;
           try {
             saveAdvisorSettings(ctx, settings);
+            if (toolsWereEnabled !== toolsEnabled) {
+              runtime.noteAdvisorToolsStateChange();
+            }
+            setAdvisorToolsActive(runtime.pi, toolsEnabled);
             runtime.updateSameModelNotice(ctx);
             runtime.updateAdvisorUsageStatus(ctx);
           } catch (error) {
+            const toolsDisabled = toolsWereEnabled && settings.advisorToolsEnabled === false;
+            if (toolsDisabled) {
+              runtime.noteAdvisorToolsStateChange();
+              setAdvisorToolsEnabledRef(false);
+              setAlwaysOnRef(false);
+              setAdvisorToolsActive(runtime.pi, false);
+              runtime.resetSameModelNotice();
+            }
             const message = error instanceof Error ? error.message : String(error);
-            ctx.ui.notify(`Could not save Advisor settings: ${message}`, "error");
+            ctx.ui.notify(toolsDisabled ? `Could not save Advisor settings; tools remain disabled for this session. ${message}` : `Could not save Advisor settings: ${message}`, "error");
           }
         },
         onJevFilter: (_selection, settings) => persistJevSettings(ctx, settings, runtime),
@@ -9576,20 +9714,37 @@ var registerSettingsCommands = (runtime) => {
     }
   });
   runtime.pi.registerCommand("advisor-off", {
-    description: "Disable on-demand Advisor calls; keep the current model",
+    description: "Disable model-facing Advisor tools across sessions; keep the current model",
     handler: (_args, ctx) => {
-      runtime.pi.setActiveTools(runtime.pi.getActiveTools().filter((name) => name !== "ask_advisor" && name !== "record_advisor_outcome"));
+      runtime.noteAdvisorToolsStateChange();
+      setAdvisorToolsActive(runtime.pi, false);
       runtime.resetSameModelNotice();
-      const wasAlwaysOn = alwaysOnRef;
-      if (wasAlwaysOn) {
-        const persisted = getPersistedModelRefs();
+      try {
+        loadConfig(ctx);
+      } catch (error) {
+        setAdvisorToolsEnabledRef(false);
         setAlwaysOnRef(false);
+        const message = error instanceof Error ? error.message : String(error);
+        notify(ctx, `Advisor tools disabled for this session, but configuration could not be reloaded: ${message}`, "error");
+        return Promise.resolve();
+      }
+      const wasAlwaysOn = alwaysOnRef;
+      const persisted = getPersistedModelRefs();
+      setAdvisorToolsEnabledRef(false);
+      if (wasAlwaysOn) {
+        setAlwaysOnRef(false);
+      }
+      try {
         saveConfig(ctx, {
           persistAdvisor: Boolean(persisted.advisor),
           persistExecutor: Boolean(persisted.executor)
         });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        notify(ctx, `Advisor tools disabled for this session, but the setting could not be saved: ${message}`, "error");
+        return Promise.resolve();
       }
-      notify(ctx, `Advisor flow disabled. Current model unchanged.${wasAlwaysOn ? " Always on turned off." : ""}`, "info");
+      notify(ctx, `Advisor tools disabled. Current model unchanged.${wasAlwaysOn ? " Always on turned off." : ""}`, "info");
       return Promise.resolve();
     }
   });
@@ -10445,11 +10600,24 @@ ${guidelines.map((rule) => `- ${rule}`).join(`
         reason: session.blockedReason ?? "Advisor session is blocked."
       };
     }
+    const isAdvisorTool = event.toolName === "ask_advisor" || event.toolName === "record_advisor_outcome";
+    if (isAdvisorTool && !advisorToolsEnabledRef) {
+      return {
+        block: true,
+        reason: "Advisor tools are disabled. Enable them in /advisor-settings or run /advisor."
+      };
+    }
     if (!pi.getActiveTools().includes("ask_advisor")) {
       return;
     }
     if (!loadConfigOrSkipGating(ctx)) {
       return;
+    }
+    if (isAdvisorTool && !advisorToolsEnabledRef) {
+      return {
+        block: true,
+        reason: "Advisor tools are disabled. Enable them in /advisor-settings or run /advisor."
+      };
     }
     if (sameModelAdvisorDisabled(ctx)) {
       return;

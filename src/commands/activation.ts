@@ -9,11 +9,13 @@ import { parseArgs } from "../config/args.ts";
 import {
   advisorEffortRef,
   advisorRef,
+  advisorToolsEnabledRef,
   contextMaxCharsRef,
   executorEffortRef,
   executorRef,
   setAdvisorEffortRef,
   setAdvisorRef,
+  setAdvisorToolsEnabledRef,
   setContextMaxCharsRef,
   setExecutorEffortRef,
   setExecutorRef,
@@ -24,6 +26,7 @@ import {
   loadCommandConfig,
   prepareActivationModels,
 } from "./activation-preparation.ts";
+import { setAdvisorToolsActive } from "./advisor-tools.ts";
 import {
   ADVISOR_ACTIVATION_EXPLANATION,
   findConfiguredModel,
@@ -35,8 +38,12 @@ import type { CommandRuntime, ThinkingLevel } from "./types.ts";
 
 const resolveActivationModels = async (
   runtime: CommandRuntime,
-  ctx: ExtensionContext
+  ctx: ExtensionContext,
+  canContinue: () => boolean
 ) => {
+  if (!canContinue()) {
+    return { cancelled: true };
+  }
   const executor = findConfiguredModel(ctx, executorRef);
   if (!executor) {
     return {
@@ -54,6 +61,9 @@ const resolveActivationModels = async (
     };
   }
   const advisorAuth = await ctx.modelRegistry.getApiKeyAndHeaders(advisor);
+  if (!canContinue()) {
+    return { cancelled: true };
+  }
   if (!(advisorAuth.ok && advisorAuth.apiKey)) {
     return { error: `No API key for Advisor ${advisorRef}` };
   }
@@ -61,6 +71,48 @@ const resolveActivationModels = async (
     return { error: `No API key for Executor ${executorRef}` };
   }
   return {};
+};
+
+const restoreActivationRefsIfCurrent = (
+  canContinue: () => boolean,
+  restoreRefs: () => void
+) => {
+  if (canContinue()) {
+    restoreRefs();
+  }
+};
+
+const liveRefSnapshot = () => ({
+  advisor: advisorRef,
+  advisorEffort: advisorEffortRef,
+  contextMaxChars: contextMaxCharsRef,
+  executor: executorRef,
+  executorEffort: executorEffortRef,
+});
+
+const persistSuccessfulActivation = (
+  ctx: ExtensionContext,
+  shouldSave: boolean,
+  reenableTools: boolean,
+  restoreRefs: () => void
+) => {
+  if (!shouldSave) {
+    return true;
+  }
+  try {
+    saveConfig(ctx, { persistAdvisor: true, persistExecutor: true });
+  } catch (saveError) {
+    if (!reenableTools) {
+      throw saveError;
+    }
+    setAdvisorToolsEnabledRef(false);
+    restoreRefs();
+    const message =
+      saveError instanceof Error ? saveError.message : String(saveError);
+    notify(ctx, `Could not save Advisor activation: ${message}`, "error");
+    return false;
+  }
+  return true;
 };
 
 export const activateAdvisor = async (
@@ -72,6 +124,9 @@ export const activateAdvisor = async (
   if (!loadCommandConfig(ctx)) {
     return;
   }
+  const { toolAvailabilityRevision } = runtime;
+  const canContinue = () =>
+    runtime.toolAvailabilityRevision === toolAvailabilityRevision;
   const previous = {
     advisor: advisorRef,
     advisorEffort: advisorEffortRef,
@@ -79,18 +134,33 @@ export const activateAdvisor = async (
     executor: executorRef,
     executorEffort: executorEffortRef,
   };
-  const restoreRefs = () => {
-    setAdvisorRef(previous.advisor);
-    setAdvisorEffortRef(previous.advisorEffort);
-    setContextMaxCharsRef(previous.contextMaxChars);
-    setExecutorRef(previous.executor);
-    setExecutorEffortRef(previous.executorEffort);
+  const liveSnapshot = liveRefSnapshot;
+  // Restores only refs this activation still owns. A concurrent settings
+  // save that replaced a ref keeps its newer value.
+  const restoreRefs = (attempted: ReturnType<typeof liveSnapshot>) => {
+    if (advisorRef === attempted.advisor) {
+      setAdvisorRef(previous.advisor);
+    }
+    if (advisorEffortRef === attempted.advisorEffort) {
+      setAdvisorEffortRef(previous.advisorEffort);
+    }
+    if (contextMaxCharsRef === attempted.contextMaxChars) {
+      setContextMaxCharsRef(previous.contextMaxChars);
+    }
+    if (executorRef === attempted.executor) {
+      setExecutorRef(previous.executor);
+    }
+    if (executorEffortRef === attempted.executorEffort) {
+      setExecutorEffortRef(previous.executorEffort);
+    }
   };
+  let attempted = liveRefSnapshot();
   const executorOverride = hasExecutorOverride(args);
   const advisorOverride = hasAdvisorOverride(args);
   const argumentError = parseArgs(args);
   if (argumentError) {
-    restoreRefs();
+    attempted = liveRefSnapshot();
+    restoreRefs(attempted);
     notify(ctx, argumentError, "error");
     return;
   }
@@ -103,20 +173,42 @@ export const activateAdvisor = async (
     advisorOverride
   );
   if (!prepared) {
-    restoreRefs();
+    attempted = liveRefSnapshot();
+    restoreActivationRefsIfCurrent(canContinue, () => restoreRefs(attempted));
     return;
   }
-  const { error } = await resolveActivationModels(runtime, ctx);
+  const { cancelled, error } = await resolveActivationModels(
+    runtime,
+    ctx,
+    canContinue
+  );
+  if (cancelled || !canContinue()) {
+    return;
+  }
   if (error) {
-    restoreRefs();
+    restoreRefs(attempted);
     notify(ctx, error, "error");
     return;
   }
   // parseArgs, model picking, and an inactive `/model` selection only mutate
   // in-memory refs. Persist them once both models are known and authenticated,
   // so an unusable model reference is never written to the configuration.
-  if (args.trim() || prepared.pickedModels || prepared.pendingExecutor) {
-    saveConfig(ctx, { persistAdvisor: true, persistExecutor: true });
+  const reenableTools = !advisorToolsEnabledRef;
+  if (reenableTools) {
+    setAdvisorToolsEnabledRef(true);
+  }
+  const shouldSave = Boolean(
+    args.trim() ||
+    prepared.pickedModels ||
+    prepared.pendingExecutor ||
+    reenableTools
+  );
+  if (
+    !persistSuccessfulActivation(ctx, shouldSave, reenableTools, () =>
+      restoreRefs(liveRefSnapshot())
+    )
+  ) {
+    return;
   }
   // A successful activation has committed the effective Executor. Do not let
   // an older inactive selection override an explicit activation argument on a
@@ -126,13 +218,7 @@ export const activateAdvisor = async (
     // SAFETY: executorEffortRef is operator-configured and trusted to name a ThinkingLevel.
     runtime.pi.setThinkingLevel(executorEffortRef as ThinkingLevel);
   }
-  if (!runtime.flowEnabled()) {
-    runtime.pi.setActiveTools([
-      ...runtime.pi.getActiveTools(),
-      "ask_advisor",
-      "record_advisor_outcome",
-    ]);
-  }
+  setAdvisorToolsActive(runtime.pi, true);
   const activeModel = isMarkedSubagent()
     ? ctx.model
     : findConfiguredModel(ctx, executorRef);

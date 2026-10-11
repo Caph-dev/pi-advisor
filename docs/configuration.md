@@ -40,6 +40,7 @@ All fields are optional. The model refs below are explicit examples of models av
   "advisorGitContext": "summary",
   "advisorGitContextMaxChars": 20000,
   "simpleMode": false,
+  "advisorToolsEnabled": true,
   "alwaysOn": false,
   "advisorHerdrIntegration": true,
   "advisorToolResultMaxLines": 2000,
@@ -83,11 +84,12 @@ The `/advisor-settings` row opens a searchable multi-select menu containing the 
 
 ## Simple mode and persistent activation
 
-- `simpleMode` defaults to `false`. When enabled, `ask_advisor` and `/advisor-manual` remain available for voluntary second opinions, while plan/failure/completion rules, loop gates, blocking, call budgets, and session summaries are disabled. Context limits, result caps, redaction, and tool disclosure policies still apply.
-- `alwaysOn` defaults to `false`. When enabled, Pi restores the configured Executor and activates `ask_advisor` for new, resumed, forked, and reloaded sessions. If model refs are missing or unavailable, startup reports the problem without activating; run `/advisor` to choose available models interactively. A native subagent launcher that sets `PI_SUBAGENT_CHILD=1` keeps its host-selected model and thinking level; Advisor tools still activate, but the child is not switched to the parent Executor.
+- `simpleMode` defaults to `false`. When enabled, `ask_advisor` remains available for voluntary second opinions when Advisor tools are enabled, and `/advisor-manual` remains available. Plan/failure/completion rules, loop gates, blocking, call budgets, and session summaries are disabled. Context limits, result caps, redaction, and tool disclosure policies still apply.
+- `advisorToolsEnabled` defaults to `true` to preserve on-demand tool access. When `false`, Pi removes `ask_advisor` and `record_advisor_outcome` from the active tool set for new, resumed, forked, and reloaded sessions. This explicit opt-out takes precedence over `alwaysOn`. Re-enable tools in `/advisor-settings`, or run `/advisor`; the latter clears the opt-out only after successful activation.
+- `alwaysOn` defaults to `false` and controls automatic flow activation separately from tool availability. When enabled and Advisor tools are enabled, Pi restores the configured Executor and activates the flow for new, resumed, forked, and reloaded sessions. If model refs are missing or unavailable, startup reports the problem without activating; run `/advisor` to choose available models interactively. A native subagent launcher that sets `PI_SUBAGENT_CHILD=1` keeps its host-selected model and thinking level; Advisor tools still activate, but the child is not switched to the parent Executor.
 - An explicit `/model` selection made before `/advisor` is held for that session and adopted as the Executor on the next successful activation. While the Advisor flow is active, an explicit `/model` selection is persisted as the Executor immediately. A model restored with a session or selected by cycling does not change the saved Executor.
-- `/advisor-off` turns `alwaysOn` off so the flow stays disabled in later sessions.
-- In Simple mode, settings keeps the Context window/history control alongside Simple mode and Always on. Advanced values remain saved and take effect when Simple mode is disabled.
+- `/advisor-off` persists `advisorToolsEnabled: false` and turns `alwaysOn` off, keeping model-facing Advisor tools disabled in later sessions. `/advisor-manual` remains available.
+- In Simple mode, settings keeps the Context window/history, Advisor tools, Simple mode, and Always on controls. Advanced values remain saved and take effect when Simple mode is disabled.
 - Settings changes are applied and persisted as they happen; Escape closes the screen without a separate Save action.
 
 ## Experimental Advisor Scout

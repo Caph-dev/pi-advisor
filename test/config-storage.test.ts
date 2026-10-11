@@ -16,6 +16,7 @@ import {
   getAdvisorSettings,
   setAdvisorEffortRef,
   setAdvisorRef,
+  setAdvisorToolsEnabledRef,
   setExecutorEffortRef,
   setExecutorRef,
   setShowUsageFooterRef,
@@ -60,6 +61,20 @@ describe("Advisor config persistence", () => {
     } else {
       process.env.PI_CODING_AGENT_DIR = originalAgentDir;
     }
+  });
+
+  test("persists the Advisor tools opt-out and defaults it on for old configs", () => {
+    writeFileSync(configPath(), JSON.stringify({ alwaysOn: false }));
+    loadConfig(context);
+    expect(getAdvisorSettings().advisorToolsEnabled).toBe(true);
+
+    setAdvisorToolsEnabledRef(false);
+    saveConfig(context);
+    expect(readSavedConfig().advisorToolsEnabled).toBe(false);
+
+    resetConfigCache();
+    loadConfig(context);
+    expect(getAdvisorSettings().advisorToolsEnabled).toBe(false);
   });
 
   test("preserves external known and unknown edits during unrelated saves", () => {
@@ -315,7 +330,7 @@ describe("Advisor argument persistence", () => {
 describe("Config schema consistency", () => {
   test("every AdvisorConfig key has exactly one schema entry", () => {
     // Compile-time coverage (satisfies Record<keyof AdvisorConfig, ...>)
-    // guarantees no missing or extra keys; this pins the exact 49-key set.
+    // guarantees no missing or extra keys; this pins the exact 50-key set.
     const schemaKeys = Object.keys(CONFIG_SCHEMA).toSorted();
     expect(schemaKeys).toEqual([
       "advisor",
@@ -357,6 +372,7 @@ describe("Config schema consistency", () => {
       "advisorToolPolicies",
       "advisorToolResultMaxBytes",
       "advisorToolResultMaxLines",
+      "advisorToolsEnabled",
       "advisorTrackedFileContent",
       "advisorUntrackedContent",
       "alwaysOn",
@@ -371,7 +387,7 @@ describe("Config schema consistency", () => {
     expect(new Set(schemaKeys).size).toBe(schemaKeys.length);
   });
 
-  test("persisted schema keys match the historical SAVED_CONFIG_KEYS list", () => {
+  test("persisted schema keys include every persisted setting", () => {
     expect([...SAVED_CONFIG_KEYS].toSorted()).toEqual([
       "advisor",
       "advisorAgentsMdContext",
@@ -411,6 +427,7 @@ describe("Config schema consistency", () => {
       "advisorToolPolicies",
       "advisorToolResultMaxBytes",
       "advisorToolResultMaxLines",
+      "advisorToolsEnabled",
       "advisorTrackedFileContent",
       "advisorUntrackedContent",
       "alwaysOn",
@@ -422,7 +439,7 @@ describe("Config schema consistency", () => {
       "showUsageFooter",
       "simpleMode",
     ]);
-    expect(SAVED_CONFIG_KEYS).toHaveLength(48);
+    expect(SAVED_CONFIG_KEYS).toHaveLength(49);
     expect(CONFIG_SCHEMA.advisorOutcomeLogging.persisted).toBe(false);
   });
 });

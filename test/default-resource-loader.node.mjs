@@ -50,9 +50,9 @@ const runSettingsCommand = async (handler, context, change) => {
         const done = () => resolve();
         const selector = factory({ requestRender: noop }, fakeTheme, {}, done);
         if (change) {
-          // Context starts at 25k: one right-arrow selects 100k. Four down
-          // arrows select Advisor reasoning, then right-arrow selects "off".
+          // Context starts at 25k; five down-arrows select Advisor reasoning.
           selector.handleInput("\u001B[C");
+          selector.handleInput("\u001B[B");
           selector.handleInput("\u001B[B");
           selector.handleInput("\u001B[B");
           selector.handleInput("\u001B[B");

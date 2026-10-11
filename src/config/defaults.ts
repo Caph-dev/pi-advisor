@@ -49,6 +49,7 @@ import {
   setShowUsageDetailsRef,
   setShowUsageFooterRef,
   setSimpleModeRef,
+  setAdvisorToolsEnabledRef,
 } from "./state.ts";
 import type { AdvisorConfig } from "./types.ts";
 import {
@@ -91,6 +92,7 @@ export const resetDefaults = () => {
   setAdvisorModelWhitelistRef([]);
   setAdvisorSessionSummaryRef(false);
   setSimpleModeRef(false);
+  setAdvisorToolsEnabledRef(true);
   setAlwaysOnRef(false);
   setAdvisorFailureModeRef("block-session");
   setAdvisorHerdrIntegrationRef(true);
@@ -214,6 +216,7 @@ export const applyConfig = (config: AdvisorConfig) => {
   applyOptionalConfig(config, "showUsageDetails", setShowUsageDetailsRef);
   applyOptionalConfig(config, "showUsageFooter", setShowUsageFooterRef);
   applyOptionalConfig(config, "simpleMode", setSimpleModeRef);
+  applyOptionalConfig(config, "advisorToolsEnabled", setAdvisorToolsEnabledRef);
   applyOptionalConfig(config, "alwaysOn", setAlwaysOnRef);
   applyOptionalConfig(config, "gateFailureMode", setAdvisorFailureModeRef);
   applyOptionalConfig(

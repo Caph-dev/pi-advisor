@@ -44,6 +44,7 @@ import {
   setAdvisorToolResultMaxLinesRef,
   setAdvisorTrackedFileContentRef,
   setAdvisorUntrackedContentRef,
+  setAdvisorToolsEnabledRef,
   setAlwaysOnRef,
   setContextMaxCharsRef,
   setShowUsageDetailsRef,
@@ -91,6 +92,7 @@ const applySessionSettings = (settings: AdvisorSettings) => {
   setShowUsageDetailsRef(settings.showUsageDetails ?? true);
   setShowUsageFooterRef(settings.showUsageFooter ?? false);
   setSimpleModeRef(settings.simpleMode ?? false);
+  setAdvisorToolsEnabledRef(settings.advisorToolsEnabled ?? true);
   setAlwaysOnRef(settings.alwaysOn ?? false);
   setAdvisorFailureModeRef(settings.failureMode ?? "block-session");
   setAdvisorHerdrIntegrationRef(settings.herdrIntegration ?? true);

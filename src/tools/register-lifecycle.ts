@@ -1,5 +1,6 @@
 import {
   advisorSessionSummaryRef,
+  advisorToolsEnabledRef,
   getAdvisorMaxCallsPerSession,
   isSimpleMode,
 } from "../config/state.ts";
@@ -116,6 +117,16 @@ export const registerToolLifecycle = ({
         reason: session.blockedReason ?? "Advisor session is blocked.",
       };
     }
+    const isAdvisorTool =
+      event.toolName === "ask_advisor" ||
+      event.toolName === "record_advisor_outcome";
+    if (isAdvisorTool && !advisorToolsEnabledRef) {
+      return {
+        block: true,
+        reason:
+          "Advisor tools are disabled. Enable them in /advisor-settings or run /advisor.",
+      };
+    }
     if (!pi.getActiveTools().includes("ask_advisor")) {
       return;
     }
@@ -123,6 +134,13 @@ export const registerToolLifecycle = ({
       // The ask_advisor execute path surfaces its own configuration errors as
       // tool errors; every other tool must proceed without Advisor gating.
       return;
+    }
+    if (isAdvisorTool && !advisorToolsEnabledRef) {
+      return {
+        block: true,
+        reason:
+          "Advisor tools are disabled. Enable them in /advisor-settings or run /advisor.",
+      };
     }
     if (sameModelAdvisorDisabled(ctx)) {
       return;

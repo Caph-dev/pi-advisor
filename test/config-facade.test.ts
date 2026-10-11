@@ -32,6 +32,7 @@ import {
   DEFAULT_CONTEXT_MAX_CHARS,
   executorRef,
   getAdvisorMaxCallsPerSession,
+  getAdvisorSettings,
   loadConfig,
   MAX_CONTEXT_MAX_CHARS,
   parseArgs,
@@ -142,6 +143,7 @@ describe("Config Module", () => {
       expect(advisorFailureModeRef).toBe("block-session");
       expect(simpleModeRef).toBe(false);
       expect(alwaysOnRef).toBe(false);
+      expect(getAdvisorSettings().advisorToolsEnabled).toBe(true);
       expect(advisorSessionSummaryRef).toBe(false);
       expect(advisorScoutEnabledRef).toBe(false);
       expect(advisorModelWhitelistRef).toEqual([]);
@@ -150,6 +152,7 @@ describe("Config Module", () => {
       expect(advisorHerdrIntegrationRef).toBe(true);
       expect(validateConfig({ advisorAgentsMdContext: false })).toBe(true);
       expect(validateConfig({ advisorScoutEnabled: true })).toBe(true);
+      expect(validateConfig({ advisorToolsEnabled: false })).toBe(true);
       expect(
         validateConfig({ advisorModelWhitelist: ["provider/model"] })
       ).toBe(true);
@@ -166,6 +169,9 @@ describe("Config Module", () => {
       );
       expect(() => validateConfig({ advisorScoutEnabled: "yes" })).toThrow(
         INVALID_SCOUT_ENABLED_PATTERN
+      );
+      expect(() => validateConfig({ advisorToolsEnabled: "yes" })).toThrow(
+        /advisorToolsEnabled/u
       );
       expect(advisorToolResultMaxLinesRef).toBe(
         DEFAULT_ADVISOR_TOOL_RESULT_MAX_LINES

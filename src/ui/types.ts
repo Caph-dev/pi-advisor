@@ -75,6 +75,7 @@ export interface ContextPreset {
 export const FALLBACK_ADVISOR_MODEL_DISABLED = "Disabled (no fallback)";
 
 export interface AdvisorSettings {
+  advisorToolsEnabled?: boolean;
   agentsMdContext?: boolean;
   fallbackModel?: string;
   alwaysOn?: boolean;

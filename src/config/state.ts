@@ -45,6 +45,7 @@ export let advisorMaxCallsPerSessionRef: number | undefined;
 export let advisorModelWhitelistRef: string[] = [];
 export let advisorSessionSummaryRef = false;
 export let simpleModeRef = false;
+export let advisorToolsEnabledRef = true;
 export let alwaysOnRef = false;
 export let advisorFailureModeRef: GateFailureMode = "block-session";
 export let advisorHerdrIntegrationRef = true;
@@ -155,6 +156,9 @@ export const setAdvisorSessionSummaryRef = (enabled: boolean) => {
 export const setSimpleModeRef = (enabled: boolean) => {
   simpleModeRef = enabled;
 };
+export const setAdvisorToolsEnabledRef = (enabled: boolean) => {
+  advisorToolsEnabledRef = enabled;
+};
 export const setAlwaysOnRef = (enabled: boolean) => {
   alwaysOnRef = enabled;
 };
@@ -250,6 +254,7 @@ export const setShowUsageFooterRef = (enabled: boolean) => {
  * imported mutable bindings, which can be snapshotted by extension loaders.
  */
 export const getAdvisorSettings = () => ({
+  advisorToolsEnabled: advisorToolsEnabledRef,
   agentsMdContext: advisorAgentsMdContextRef,
   alwaysOn: alwaysOnRef,
   autoLoopGate: advisorAutoLoopGateRef,

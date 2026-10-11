@@ -22,6 +22,7 @@ const expectedFiles = [
   "src/commands.ts",
   "src/commands/activation-preparation.ts",
   "src/commands/activation.ts",
+  "src/commands/advisor-tools.ts",
   "src/commands/lifecycle.ts",
   "src/commands/manual-command.ts",
   "src/commands/manual-consultation.ts",

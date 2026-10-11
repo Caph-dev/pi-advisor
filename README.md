@@ -141,7 +141,7 @@ Successful calls return an opaque `adviceId`. If global outcome logging is enabl
 | `/advisor-models` | Choose the Executor, Advisor, and optional fallback models. |
 | `/advisor-settings` | Configure behavior, models, context, privacy, and limits. |
 | `/advisor-stats` | Show retained outcome adoption and validation stats. |
-| `/advisor-off` | Disable the flow and persistent activation. |
+| `/advisor-off` | Disable model-facing Advisor tools across sessions and turn off persistent activation. |
 
 In the interactive TUI, `/advisor-manual [focus]` opens a centered overlay with the focus text prefilled, a choice of permitted Git-context level, and live progress in the transcript. Canceling has no side effects.
 

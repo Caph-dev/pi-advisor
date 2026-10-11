@@ -106,6 +106,7 @@ export interface AdvisorConfig {
   advisorToolResultMaxBytes?: number;
   advisorToolResultMaxLines?: number;
   advisorTrackedFileContent?: boolean;
+  advisorToolsEnabled?: boolean;
   advisorUntrackedContent?: boolean;
   alwaysOn?: boolean;
   contextMaxChars?: number;

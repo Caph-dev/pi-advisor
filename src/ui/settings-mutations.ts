@@ -35,6 +35,36 @@ const parseModelWhitelist = (value: string) => [
   ),
 ];
 
+const applyModeMutation = (
+  settings: AdvisorSettings,
+  id: string,
+  value: string
+): boolean => {
+  switch (id) {
+    case "advisorToolsEnabled": {
+      settings.advisorToolsEnabled = value === "On";
+      if (!settings.advisorToolsEnabled) {
+        settings.alwaysOn = false;
+      }
+      return true;
+    }
+    case "simpleMode": {
+      settings.simpleMode = value === "On";
+      return true;
+    }
+    case "alwaysOn": {
+      settings.alwaysOn = value === "On";
+      if (settings.alwaysOn) {
+        settings.advisorToolsEnabled = true;
+      }
+      return true;
+    }
+    default: {
+      return false;
+    }
+  }
+};
+
 const applyCoreMutation = (
   settings: AdvisorSettings,
   id: string,
@@ -46,14 +76,6 @@ const applyCoreMutation = (
       settings.contextMaxChars =
         presets.find((preset) => preset.label === value)?.value ??
         settings.contextMaxChars;
-      return true;
-    }
-    case "simpleMode": {
-      settings.simpleMode = value === "On";
-      return true;
-    }
-    case "alwaysOn": {
-      settings.alwaysOn = value === "On";
       return true;
     }
     case "fallbackModel": {
@@ -195,6 +217,9 @@ export const mutateAdvisorSettings = (
   value: string,
   presets: ContextPreset[]
 ): void => {
+  if (applyModeMutation(settings, id, value)) {
+    return;
+  }
   if (applyCoreMutation(settings, id, value, presets)) {
     return;
   }

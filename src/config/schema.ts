@@ -44,6 +44,7 @@ import {
   advisorToolResultMaxBytesRef,
   advisorToolResultMaxLinesRef,
   advisorTrackedFileContentRef,
+  advisorToolsEnabledRef,
   advisorUntrackedContentRef,
   alwaysOnRef,
   contextMaxCharsRef,
@@ -433,6 +434,12 @@ export const CONFIG_SCHEMA = {
     persisted: true,
     type: "number",
     validate: isValidToolResultMaxLines,
+  },
+  advisorToolsEnabled: {
+    accepted: "true or false",
+    current: () => advisorToolsEnabledRef,
+    persisted: true,
+    type: "boolean",
   },
   advisorTrackedFileContent: {
     accepted: "true or false",

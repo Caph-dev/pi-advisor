@@ -104,9 +104,9 @@ describe("Advisor settings selector", () => {
   test("uses a compact searchable settings list and saves each change", () => {
     const { saved, selector } = openSelector({});
     const screen = selector.render(80).join("\n");
+    expect(screen).toContain("Advisor tools");
     expect(screen).toContain("Advisor reasoning");
     expect(screen).toContain("Experimental Advisor Scout");
-    expect(screen).toContain("Show usage and cost details");
     expect(screen).not.toContain("Save changes");
     expect(screen).toContain("Type to search");
 

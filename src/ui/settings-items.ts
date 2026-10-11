@@ -349,9 +349,17 @@ export const createSettingsItems = ({
       values: presets.map((preset) => preset.label),
     },
     {
+      currentValue: settingValue(settings.advisorToolsEnabled, true),
+      description:
+        "Allow the model to call the Advisor tools; /advisor-off disables them across sessions.",
+      id: "advisorToolsEnabled",
+      label: "Advisor tools",
+      values: TOGGLE_VALUES,
+    },
+    {
       currentValue: settingValue(settings.simpleMode, false),
       description:
-        "Keep the Advisor available on demand without automatic gates or blocks.",
+        "Keep enabled Advisor tools available on demand without automatic gates or blocks.",
       id: "simpleMode",
       label: "Simple mode",
       values: TOGGLE_VALUES,

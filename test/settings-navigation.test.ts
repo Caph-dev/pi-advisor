@@ -157,6 +157,31 @@ describe("Advisor settings navigation and gate parsing regressions", () => {
     selector.dispose();
   });
 
+  test("toggles Advisor tool availability in Simple mode settings", () => {
+    const { saved, selector } = openSelector({
+      advisorToolsEnabled: true,
+      alwaysOn: true,
+      simpleMode: true,
+    });
+    const screen = plainScreen(selector);
+    expect(screen).toContain("Advisor tools");
+    expect(screen).toContain("Simple mode");
+    expect(screen).not.toContain("Plan gate");
+
+    focusSettingsRow(selector, "Advisor tools");
+    selector.handleInput(" ");
+    expect(saved.at(-1)).toMatchObject({
+      advisorToolsEnabled: false,
+      alwaysOn: false,
+    });
+    selector.handleInput(" ");
+    expect(saved.at(-1)).toMatchObject({
+      advisorToolsEnabled: true,
+      alwaysOn: false,
+    });
+    selector.dispose();
+  });
+
   test("treats a quoted decision inside a fenced example as illustrative", () => {
     const result = parseAutomaticDecision(
       "Decision: revise\n\nUse this format:\n\n```\nDecision: proceed\n```\n\nThen retry."
