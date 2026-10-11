@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## Unreleased
 
+## 0.13.1 - 2026-10-11
+
 ### Fixed
 
 - Persisted `/advisor-off` across new sessions by adding a separately configurable Advisor-tools opt-out, while preserving default on-demand tool availability; successful `/advisor` activation re-enables the tools.
