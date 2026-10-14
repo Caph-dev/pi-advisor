@@ -55,6 +55,7 @@ const typingSelectorUi = (
   } = {}
 ) => {
   let customCall = 0;
+
   return {
     custom: (factory: any) =>
       new Promise((resolve) => {
@@ -67,14 +68,18 @@ const typingSelectorUi = (
             resolve(value);
           }
         );
+
         options.onOpen?.();
         selector.render(100);
+
         if (customCall === 1 && options.search) {
           for (const character of options.search) {
             selector.handleInput(character);
           }
+
           selector.render(100);
         }
+
         customCall += 1;
         selector.handleInput("\r");
       }),
@@ -89,14 +94,17 @@ describe("Advisor activation flow", () => {
       const commands = new Map<string, any>();
       let activeTools: string[] = [];
       let selectedModel: unknown;
+
       const models = [
         { id: "executor", provider: "provider" },
         { id: "advisor", provider: "provider" },
       ];
+
       const theme: SelectorTheme = {
         bold: (value: string) => value,
         fg: (_color: string, value: string) => value,
       };
+
       const ctx = asExtensionContext({
         cwd: agentDir,
         hasUI: true,
@@ -115,6 +123,7 @@ describe("Advisor activation flow", () => {
             },
             setModel(model: RegistryModel) {
               selectedModel = model;
+
               return Promise.resolve(true);
             },
             setThinkingLevel: () => {},
@@ -140,12 +149,15 @@ describe("Advisor activation flow", () => {
     await withAgentDir({}, async (agentDir) => {
       const { commands, pi, setActiveTools } = activationHarness();
       setActiveTools([]);
+
       const models = [
         { id: "chosen-executor", provider: "provider" },
         { id: "chosen-advisor", provider: "provider" },
       ];
+
       const selectedModels: string[] = [];
       const notices: string[] = [];
+
       const ctx = asExtensionContext({
         cwd: agentDir,
         hasUI: true,
@@ -177,9 +189,11 @@ describe("Advisor activation flow", () => {
         executor: "provider/chosen-executor",
       });
       expect(pi.getActiveTools()).toContain("ask_advisor");
+
       const explanation = notices.find((message) =>
         message.startsWith("The Advisor is")
       );
+
       expect(explanation).toContain(
         "The Advisor is a second-opinion model that reviews the Executor's context and returns risks, alternatives, and verification steps without changing files or running tools."
       );
@@ -200,11 +214,14 @@ describe("Advisor activation flow", () => {
       async (agentDir) => {
         const { commands, pi, setActiveTools } = activationHarness();
         setActiveTools([]);
+
         const models = [
           { id: "executor", provider: "provider" },
           { id: "advisor", provider: "provider" },
         ];
+
         let customCalls = 0;
+
         const ctx = asExtensionContext({
           cwd: agentDir,
           hasUI: true,
@@ -213,6 +230,7 @@ describe("Advisor activation flow", () => {
           ui: {
             custom: () => {
               customCalls += 1;
+
               return Promise.resolve();
             },
             notify: () => {},
@@ -236,11 +254,14 @@ describe("Advisor activation flow", () => {
       },
       async (agentDir) => {
         const { commands, pi } = activationHarness();
+
         const models = [
           { id: "replacement", provider: "provider" },
           { id: "executor", provider: "provider" },
         ];
+
         let customCalls = 0;
+
         const ctx = asExtensionContext({
           cwd: agentDir,
           hasUI: true,
@@ -273,6 +294,7 @@ describe("Advisor activation flow", () => {
     await withAgentDir({ advisorToolsEnabled: false }, async (agentDir) => {
       const { commands, events, pi, setActiveTools } = activationHarness();
       setActiveTools(["ask_advisor", "record_advisor_outcome"]);
+
       const ctx = asExtensionContext({
         cwd: agentDir,
         hasUI: true,
@@ -306,15 +328,19 @@ describe("Advisor activation flow", () => {
       { advisor: "provider/sonnet", executor: "provider/sonnet" },
       async (agentDir) => {
         const { commands, events, pi, setActiveTools } = activationHarness();
+
         const models = [
           { id: "sonnet", provider: "provider" },
           { id: "luna", provider: "provider" },
         ];
+
         const selectedModels: string[] = [];
+
         const theme: SelectorTheme = {
           bold: (value: string) => value,
           fg: (_color: string, value: string) => value,
         };
+
         const ctx = asExtensionContext({
           cwd: agentDir,
           hasUI: true,
@@ -372,6 +398,7 @@ describe("Advisor activation flow", () => {
   test("activates silently for always-on sessions but announces /advisor", async () => {
     const previousChildMarker = process.env.PI_SUBAGENT_CHILD;
     delete process.env.PI_SUBAGENT_CHILD;
+
     try {
       await withAgentDir(
         {
@@ -388,6 +415,7 @@ describe("Advisor activation flow", () => {
             thinkingLevels,
             setActiveTools,
           } = activationHarness();
+
           registerCommands(pi);
           const automatic: string[] = [];
           setActiveTools([]);
@@ -421,6 +449,7 @@ describe("Advisor activation flow", () => {
   test("preserves the host model for marked subagent sessions", async () => {
     const previousChildMarker = process.env.PI_SUBAGENT_CHILD;
     process.env.PI_SUBAGENT_CHILD = "1";
+
     try {
       await withAgentDir(
         {
@@ -432,6 +461,7 @@ describe("Advisor activation flow", () => {
         async (agentDir) => {
           const { events, pi, selectedModels, thinkingLevels, setActiveTools } =
             activationHarness();
+
           registerCommands(pi);
           setActiveTools([]);
           await events.get("session_start")?.(
@@ -455,6 +485,7 @@ describe("Advisor activation flow", () => {
   test("preserves the host model for explicit activation in marked subagents", async () => {
     const previousChildMarker = process.env.PI_SUBAGENT_CHILD;
     process.env.PI_SUBAGENT_CHILD = "1";
+
     try {
       await withAgentDir(
         {
@@ -465,6 +496,7 @@ describe("Advisor activation flow", () => {
         async (agentDir) => {
           const { commands, pi, selectedModels, thinkingLevels } =
             activationHarness();
+
           registerCommands(pi);
           await commands
             .get("advisor")
@@ -486,6 +518,7 @@ describe("Advisor activation flow", () => {
   test("does not persist marked child model selections", async () => {
     const previousChildMarker = process.env.PI_SUBAGENT_CHILD;
     process.env.PI_SUBAGENT_CHILD = "1";
+
     try {
       await withAgentDir(
         {
@@ -519,6 +552,7 @@ describe("Advisor activation flow", () => {
     setShowUsageDetailsRef(true);
     const { pi, renderers } = activationHarness();
     registerAdvisorTool(pi);
+
     const render = () =>
       renderers
         .get("advisor-loop-result")(
@@ -539,6 +573,7 @@ describe("Advisor activation flow", () => {
 
     expect(render()).toContain("Usage: ↑50 · ↓10 · $0.0042");
     setShowUsageDetailsRef(false);
+
     try {
       expect(render()).not.toContain("Usage:");
     } finally {
@@ -551,10 +586,12 @@ describe("Advisor activation flow", () => {
       const { commands, pi, setActiveTools } = activationHarness();
       registerCommands(pi);
       setActiveTools(["read", "ask_advisor", "record_advisor_outcome"]);
+
       const models = modelsRegistry([
         { id: "advisor", provider: "provider" },
         { id: "executor", provider: "provider" },
       ]);
+
       const ctx = asExtensionContext({
         cwd: agentDir,
         hasUI: true,
@@ -569,6 +606,7 @@ describe("Advisor activation flow", () => {
                 { matches: () => false },
                 () => resolve()
               );
+
               focusSettingsRow(selector, "Advisor tools");
               selector.handleInput(" ");
               selector.dispose();
@@ -599,6 +637,7 @@ describe("Advisor activation flow", () => {
       registerCommands(pi);
       setActiveTools(["read", "ask_advisor", "record_advisor_outcome"]);
       const notes: string[] = [];
+
       const ctx = asExtensionContext({
         cwd: agentDir,
         hasUI: true,
@@ -613,6 +652,7 @@ describe("Advisor activation flow", () => {
                 { matches: () => false },
                 () => resolve()
               );
+
               focusSettingsRow(selector, "Advisor tools");
               writeFileSync(join(agentDir, "advisor.json"), "{ invalid");
               selector.handleInput(" ");
@@ -699,6 +739,7 @@ describe("Advisor activation flow", () => {
       async (agentDir) => {
         const { events, pi, selectedModels, setActiveTools } =
           activationHarness();
+
         registerCommands(pi);
         setActiveTools(["read", "ask_advisor", "record_advisor_outcome"]);
 
@@ -749,13 +790,16 @@ describe("Advisor activation flow", () => {
       async (agentDir) => {
         const { commands, pi, selectedModels, setActiveTools } =
           activationHarness();
+
         registerCommands(pi);
         setActiveTools(["read", "ask_advisor", "record_advisor_outcome"]);
         let releaseAuth!: (result: { apiKey: string; ok: boolean }) => void;
         let signalAuthStarted!: () => void;
+
         const authStarted = new Promise<void>((resolve) => {
           signalAuthStarted = resolve;
         });
+
         const ctx = asExtensionContext({
           cwd: agentDir,
           hasUI: true,
@@ -764,6 +808,7 @@ describe("Advisor activation flow", () => {
             find: (provider: string, id: string) => ({ id, provider }),
             getApiKeyAndHeaders: () => {
               signalAuthStarted();
+
               return new Promise((resolve) => {
                 releaseAuth = resolve;
               });
@@ -775,6 +820,7 @@ describe("Advisor activation flow", () => {
         const activation = commands
           .get("advisor")
           .handler("contextMaxChars=5000", ctx);
+
         await authStarted;
         await commands.get("advisor-off").handler("", ctx);
         releaseAuth({ apiKey: "key", ok: true });
@@ -801,15 +847,19 @@ describe("Advisor activation flow", () => {
         const { commands, pi, setActiveTools } = activationHarness();
         registerCommands(pi);
         setActiveTools(["read", "ask_advisor", "record_advisor_outcome"]);
+
         const models = [
           { id: "advisor", provider: "provider" },
           { id: "executor", provider: "provider" },
         ];
+
         let releaseAuth!: (result: { apiKey: string; ok: boolean }) => void;
         let signalAuthStarted!: () => void;
+
         const authStarted = new Promise<void>((resolve) => {
           signalAuthStarted = resolve;
         });
+
         const modelRegistry = {
           find: (provider: string, id: string) =>
             models.find(
@@ -817,12 +867,14 @@ describe("Advisor activation flow", () => {
             ),
           getApiKeyAndHeaders: () => {
             signalAuthStarted();
+
             return new Promise((resolve) => {
               releaseAuth = resolve;
             });
           },
           getAvailable: () => models,
         };
+
         const ctx = asExtensionContext({
           cwd: agentDir,
           hasUI: true,
@@ -830,6 +882,7 @@ describe("Advisor activation flow", () => {
           modelRegistry,
           ui: { notify: () => {} },
         });
+
         const settingsCtx = asExtensionContext({
           cwd: agentDir,
           hasUI: true,
@@ -844,6 +897,7 @@ describe("Advisor activation flow", () => {
                   { matches: () => false },
                   () => resolve()
                 );
+
                 focusSettingsRow(selector, "Advisor tools");
                 selector.handleInput(" ");
                 changeSetting(selector, "Context window");
@@ -858,6 +912,7 @@ describe("Advisor activation flow", () => {
         const activation = commands
           .get("advisor")
           .handler("contextMaxChars=5000", ctx);
+
         await authStarted;
         await commands.get("advisor-settings").handler("", settingsCtx);
         expect(savedConfig(agentDir)).toMatchObject({
@@ -884,15 +939,19 @@ describe("Advisor activation flow", () => {
         const { commands, pi, setActiveTools } = activationHarness();
         registerCommands(pi);
         setActiveTools(["read", "ask_advisor", "record_advisor_outcome"]);
+
         const models = [
           { id: "advisor", provider: "provider" },
           { id: "executor", provider: "provider" },
         ];
+
         let releaseAuth!: (result: { apiKey: string; ok: boolean }) => void;
         let signalAuthStarted!: () => void;
+
         const authStarted = new Promise<void>((resolve) => {
           signalAuthStarted = resolve;
         });
+
         const modelRegistry = {
           find: (provider: string, id: string) =>
             models.find(
@@ -900,12 +959,14 @@ describe("Advisor activation flow", () => {
             ),
           getApiKeyAndHeaders: () => {
             signalAuthStarted();
+
             return new Promise((resolve) => {
               releaseAuth = resolve;
             });
           },
           getAvailable: () => models,
         };
+
         const ctx = asExtensionContext({
           cwd: agentDir,
           hasUI: true,
@@ -913,6 +974,7 @@ describe("Advisor activation flow", () => {
           modelRegistry,
           ui: { notify: () => {} },
         });
+
         const settingsCtx = asExtensionContext({
           cwd: agentDir,
           hasUI: true,
@@ -927,6 +989,7 @@ describe("Advisor activation flow", () => {
                   { matches: () => false },
                   () => resolve()
                 );
+
                 changeSetting(selector, "Context window");
                 selector.dispose();
                 resolve();
@@ -939,6 +1002,7 @@ describe("Advisor activation flow", () => {
         const activation = commands
           .get("advisor")
           .handler("contextMaxChars=5000", ctx);
+
         await authStarted;
         await commands.get("advisor-settings").handler("", settingsCtx);
         expect(savedConfig(agentDir).contextMaxChars).toBe(25_000);
@@ -1049,6 +1113,7 @@ describe("Advisor activation flow", () => {
     await withAgentDir({}, () => {
       const { pi, renderers } = activationHarness();
       registerCommands(pi);
+
       const render = (text: string) =>
         renderers
           .get("advisor-manual-result")(
@@ -1065,6 +1130,7 @@ describe("Advisor activation flow", () => {
           )
           .render(120)
           .join("\n");
+
       expect(render("Verdict: sound\n\nNothing to change.")).toContain(
         "◆ ADVISOR · SOUND"
       );
@@ -1072,6 +1138,7 @@ describe("Advisor activation flow", () => {
         "Usage: ↑100 · ↓20 · cw:3 · $0.0100"
       );
       setShowUsageDetailsRef(false);
+
       try {
         expect(render("Verdict: sound\n\nNothing to change.")).not.toContain(
           "Usage:"
@@ -1079,6 +1146,7 @@ describe("Advisor activation flow", () => {
       } finally {
         setShowUsageDetailsRef(true);
       }
+
       expect(render("Consider reverting the migration.")).toContain(
         "◆ ADVISOR RESPONSE"
       );

@@ -31,6 +31,7 @@ const runGuard = (
 
 const withTempDirectory = (run: (directory: string) => void) => {
   const directory = mkdtempSync(join(tmpdir(), "pi-advisor-bun-guard-"));
+
   try {
     run(directory);
   } finally {
@@ -50,12 +51,14 @@ describe("Bun install version guard", () => {
   test("accepts the minimum and newer Bun releases", () => {
     withTempDirectory((cwd) => {
       const minimum = runGuard(guardPath, cwd, "bun/1.4.3 npm/?", projectRoot);
+
       const newer = runGuard(
         guardPath,
         cwd,
         "bun/1.5.0-canary.1 npm/?",
         projectRoot
       );
+
       expect(minimum.status).toBe(0);
       expect(newer.status).toBe(0);
     });
@@ -69,6 +72,7 @@ describe("Bun install version guard", () => {
         "bun/1.4.3-canary.1 npm/?",
         projectRoot
       );
+
       expect(result.status).toBe(1);
     });
   });
@@ -81,6 +85,7 @@ describe("Bun install version guard", () => {
         "npm/11.4.2 node/v24",
         projectRoot
       );
+
       expect(result.status).toBe(1);
       expect(result.stderr).toContain("a non-Bun package manager");
     });
@@ -94,6 +99,7 @@ describe("Bun install version guard", () => {
         "npm/11.4.2 node/v24",
         consumerRoot
       );
+
       expect(result.status).toBe(0);
     });
   });
@@ -115,6 +121,7 @@ describe("Bun install version guard", () => {
         "npm/11.4.2 node/v24",
         consumerRoot
       );
+
       expect(result.status).toBe(0);
     });
   });

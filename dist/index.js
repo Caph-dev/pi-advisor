@@ -156,7 +156,10 @@ var setAdvisorMaxCallsPerSessionRef = (value) => {
 };
 var setAdvisorModelWhitelistRef = (models) => {
   advisorModelWhitelistRef = [
-    ...new Set(models.map((model) => model.trim()).filter(Boolean))
+    ...new Set(models.flatMap((model) => {
+      const trimmed = model.trim();
+      return trimmed ? [trimmed] : [];
+    }))
   ];
 };
 var setAdvisorSessionSummaryRef = (enabled) => {
@@ -4830,7 +4833,7 @@ var jevCostText = (usage) => {
   }
   return `$${usage.cost.toFixed(4)}`;
 };
-var markdownCosts = (invocations) => invocations.filter((item) => item.kind === "markdown" && typeof item.cost === "number").map((item) => item.cost);
+var markdownCosts = (invocations) => invocations.flatMap((item) => item.kind === "markdown" && item.cost !== undefined ? [item.cost] : []);
 var filterLine = (filter) => {
   const head = `${filter.screened} screened (${filter.allowed} allowed, ${filter.skipped} skipped${filter.repeatSkipped > 0 ? ` [${filter.repeatSkipped} repeat]` : ""})`;
   const parts = [head];
@@ -4843,7 +4846,7 @@ var filterLine = (filter) => {
   return `Jev/Decisions filter: ${parts.join(", ")}`;
 };
 var gateLine = (gate, invocations) => {
-  const consultationCosts = invocations.filter((item) => item.trigger === "turn-gate" && typeof item.cost === "number").map((item) => item.cost);
+  const consultationCosts = invocations.flatMap((item) => item.trigger === "turn-gate" && item.cost !== undefined ? [item.cost] : []);
   const gateSpend = consultationCosts.reduce((sum, cost) => sum + cost, 0);
   return `Turn gate: ${gate.checks} check${gate.checks === 1 ? "" : "s"} (Jev/Decisions ${formatJevTokens(gate.usage)} · ${jevCostText(gate.usage)}), ${gate.consultations} consultation${gate.consultations === 1 ? "" : "s"} ($${gateSpend.toFixed(4)})`;
 };
@@ -5205,10 +5208,14 @@ class AdvisorSessionState {
   }
   #decisionsLine() {
     const gates = this.#usage.invocations.filter((item) => item.kind === "gate");
-    return ["proceed", "revise", "blocked"].map((decision) => [
-      decision,
-      gates.filter((item) => item.decision === decision).length
-    ]).filter(([, count]) => count > 0).map(([decision, count]) => `${count} ${decision}`).join(", ") || "none";
+    const parts = [];
+    for (const decision of ["proceed", "revise", "blocked"]) {
+      const count = gates.filter((item) => item.decision === decision).length;
+      if (count > 0) {
+        parts.push(`${count} ${decision}`);
+      }
+    }
+    return parts.join(", ") || "none";
   }
   #countTrigger(trigger) {
     return this.#usage.invocations.filter((item) => item.trigger === trigger).length;

@@ -26,6 +26,7 @@ export const buildJevState = (
   input: JevStateInput = {}
 ) => {
   const fields = new Map<string, string>([["role", "executor"]]);
+
   if (input.question) {
     fields.set(
       "executor_question",
@@ -36,15 +37,19 @@ export const buildJevState = (
       )
     );
   }
+
   if (input.draft) {
     fields.set(
       "executor_draft",
       redactAndCapText(input.draft, JEV_TEXT_CAP_BYTES, advisorRedactSecretsRef)
     );
   }
+
   const digest = recentConversation(ctx, advisorJevDigestMaxCharsRef);
+
   if (digest) {
     fields.set("recent_conversation", digest);
   }
+
   return Object.fromEntries(fields);
 };

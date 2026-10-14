@@ -80,6 +80,7 @@ const shouldRunTurnGate = (
   session: AdvisorSessionState
 ) => {
   const interval = advisorJevTurnGateEveryTurnsRef;
+
   return (
     interval > 0 &&
     session.turnsSinceConsultation > 0 &&
@@ -99,7 +100,9 @@ const consumeTurnGateBudget = (
   if (!shouldConsult || !session.canConsult(getAdvisorMaxCallsPerSession())) {
     return false;
   }
+
   session.consumeCall();
+
   return true;
 };
 
@@ -118,16 +121,19 @@ export const handleJevTurnEnd = async (
 ): Promise<void> => {
   const { session } = registration;
   session.recordCompletedTurn();
+
   if (!shouldRunTurnGate(registration, ctx, session)) {
     return;
   }
 
   const consult = registration.deps?.consult ?? registration.consult;
   const deps = registration.deps ?? {};
+
   try {
     const credentials = await (deps.resolveTransport ?? resolveJevTransport)(
       ctx
     );
+
     if (!credentials) {
       session.recordJevGateFailure();
       notifyFailureOnce(
@@ -135,25 +141,33 @@ export const handleJevTurnEnd = async (
         "missing-key",
         "No credentials resolved for the selected Jev/Decisions provider."
       );
+
       return;
     }
+
     const client = jevClientFromCredentials(credentials, deps.fetch);
+
     const result = await client.ask(buildJevState(ctx, {}), {
       should_consult: turnGateQuestion,
     });
+
     session.recordJevGateCheck(result.usage);
+
     const shouldConsult = composeTurnGateVerdict(
       result.answers,
       advisorJevTurnGateNoulThresholdRef
     );
+
     if (
       !advisorModelIsAllowed(ctx) ||
       !consumeTurnGateBudget(session, shouldConsult)
     ) {
       return;
     }
+
     const herdrActivity = registration.herdrActivity ?? herdrAdvisorActivity;
     const finishHerdrActivity = herdrActivity.start();
+
     try {
       registration.send({
         content: "Proactive Advisor turn review",
@@ -164,6 +178,7 @@ export const handleJevTurnEnd = async (
         },
         display: true,
       });
+
       const consulted = await consult(
         ctx,
         undefined,
@@ -171,6 +186,7 @@ export const handleJevTurnEnd = async (
         undefined,
         "turn-gate"
       );
+
       session.recordJevGateConsultation();
       session.resetTurnsSinceConsultation();
       session.recordInvocation({
@@ -198,6 +214,7 @@ export const handleJevTurnEnd = async (
     }
   } catch (error) {
     session.recordJevGateFailure();
+
     if (error instanceof JevFailure) {
       notifyFailureOnce(ctx, error.category, error.message);
     } else if (!ctx.signal?.aborted) {

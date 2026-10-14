@@ -73,6 +73,7 @@ const bypassOutcome = (
   normalizedQuestion: string | undefined
 ): ScreeningOutcome | undefined => {
   const lastSkip = session.lastJevSkip;
+
   if (options.force) {
     if (
       lastSkip?.normalizedQuestion !== undefined &&
@@ -80,8 +81,10 @@ const bypassOutcome = (
     ) {
       session.recordJevFilterOverride();
     }
+
     return allow();
   }
+
   if (
     normalizedQuestion !== undefined &&
     lastSkip?.normalizedQuestion === normalizedQuestion &&
@@ -89,8 +92,10 @@ const bypassOutcome = (
       advisorJevFilterOverrideWindowRef
   ) {
     session.recordJevFilterOverride();
+
     return allow();
   }
+
   return undefined;
 };
 
@@ -102,6 +107,7 @@ const screenWithJev = async (
   normalizedQuestion: string | undefined
 ): Promise<ScreeningOutcome> => {
   const credentials = await (deps.resolveTransport ?? resolveJevTransport)(ctx);
+
   if (!credentials) {
     session.recordJevFilterFailure();
     notifyOutageOnce(
@@ -109,42 +115,54 @@ const screenWithJev = async (
       "missing-key",
       "No credentials resolved for the selected Jev/Decisions provider."
     );
+
     return allow();
   }
+
   if (credentials.source === "advisor-json") {
     const warning = consumePlaintextKeyWarning();
+
     if (warning && ctx.hasUI) {
       ctx.ui.notify(warning, "warning");
     }
   }
 
   const client = jevClientFromCredentials(credentials, deps.fetch);
+
   try {
     const result = await client.ask(
       buildJevState(ctx, options),
       screeningQuestions,
       options.signal
     );
+
     session.recordJevFilterUsage(result.usage);
+
     const verdict = composeScreeningVerdict(result.answers, {
       noulMargin: advisorJevFilterNoulMarginRef,
       skipConfidence: advisorJevFilterSkipConfidenceRef,
     });
+
     if (verdict.skip) {
       session.recordJevFilterSkipped(false, normalizedQuestion);
+
       return {
         decision: "skip",
         kind: "screened",
         reason: "low stakes and resolvable without a consultation",
       };
     }
+
     session.recordJevFilterAllowed();
+
     return allow();
   } catch (error) {
     if (options.signal?.aborted) {
       throw error;
     }
+
     session.recordJevFilterFailure();
+
     if (error instanceof JevFailure) {
       notifyOutageOnce(ctx, error.category, error.message);
     } else {
@@ -154,6 +172,7 @@ const screenWithJev = async (
         error instanceof Error ? error.message : String(error)
       );
     }
+
     return allow();
   }
 };
@@ -173,17 +192,22 @@ export const screenConsultation = (
   if (isSimpleMode()) {
     return Promise.resolve(allow());
   }
+
   // Repeat reattachment and its force/passthrough escape hatch are code-side
   // and free: they run regardless of the Jev enable flag, which only gates
   // the (paid, network) Jev screening call.
   const normalizedQuestion = normalizeScreeningQuestion(options.question);
   const bypass = bypassOutcome(session, options, normalizedQuestion);
+
   if (bypass) {
     return Promise.resolve(bypass);
   }
+
   const reattached = session.reattachedAdviceFor(normalizedQuestion);
+
   if (reattached) {
     session.recordJevFilterSkipped(true, normalizedQuestion);
+
     return Promise.resolve({
       decision: "skip",
       kind: "repeat",
@@ -191,9 +215,11 @@ export const screenConsultation = (
       reattachedAdvice: capUtf8Bytes(reattached, REATTACHED_ADVICE_CAP_BYTES),
     });
   }
+
   if (!advisorJevFilterEnabledRef) {
     return Promise.resolve(allow());
   }
+
   return screenWithJev(ctx, session, options, deps, normalizedQuestion);
 };
 

@@ -7,9 +7,11 @@ export const setAdvisorToolsActive = (
   enabled: boolean
 ) => {
   const current = pi.getActiveTools();
+
   const next = current.filter(
     (name) => enabled || !ADVISOR_TOOL_NAMES.has(name)
   );
+
   if (enabled) {
     for (const name of ADVISOR_TOOL_NAMES) {
       if (!next.includes(name)) {
@@ -17,6 +19,7 @@ export const setAdvisorToolsActive = (
       }
     }
   }
+
   if (
     next.length !== current.length ||
     next.some((name, index) => name !== current[index])

@@ -71,8 +71,10 @@ import {
 import { asExtensionContext } from "./helpers/extension-context.ts";
 
 const AGENT_DIR_ENV = "PI_CODING_AGENT_DIR";
+
 const INVALID_FAILURE_MODE_PATTERN =
   /block-session.*block-tool.*warn-and-continue/u;
+
 const INVALID_TOOL_POLICIES_PATTERN = /advisorToolPolicies/u;
 const INVALID_SCOUT_ENABLED_PATTERN = /advisorScoutEnabled/u;
 const INVALID_SHOW_USAGE_DETAILS_PATTERN = /showUsageDetails/u;
@@ -188,11 +190,13 @@ describe("Config Module", () => {
       expect(() =>
         validateConfig({ gateFailureMode: "bad" }, "/tmp/advisor.json")
       ).toThrow(INVALID_FAILURE_MODE_PATTERN);
+
       for (const invalid of [[], { bash: "invalid" }, { "": "full" }]) {
         expect(() => validateConfig({ advisorToolPolicies: invalid })).toThrow(
           INVALID_TOOL_POLICIES_PATTERN
         );
       }
+
       for (const invalid of ["provider/model", [""], ["provider/model", 1]]) {
         expect(() =>
           validateConfig({ advisorModelWhitelist: invalid })
@@ -204,6 +208,7 @@ describe("Config Module", () => {
       } else {
         process.env[AGENT_DIR_ENV] = previousAgentDir;
       }
+
       resetConfigCache();
       rmSync(agentDir, { force: true, recursive: true });
     }
@@ -231,9 +236,11 @@ describe("Config Module", () => {
 
     try {
       setAdvisorMaxCallsPerSessionRef(undefined);
+
       const path = saveConfig(
         asExtensionContext({ cwd, isProjectTrusted: () => false })
       );
+
       expect(JSON.parse(readFileSync(path, "utf-8"))).not.toHaveProperty(
         "advisorMaxCallsPerSession"
       );
@@ -243,6 +250,7 @@ describe("Config Module", () => {
       } else {
         process.env[AGENT_DIR_ENV] = previousAgentDir;
       }
+
       rmSync(cwd, { force: true, recursive: true });
       rmSync(agentDir, { force: true, recursive: true });
     }
@@ -263,6 +271,7 @@ describe("Config Module", () => {
       JSON.stringify({ advisorOutcomeLogging: false })
     );
     resetConfigCache();
+
     try {
       loadConfig(asExtensionContext({ cwd, isProjectTrusted: () => true }));
       expect(advisorOutcomeLoggingRef).toBe(false);
@@ -279,6 +288,7 @@ describe("Config Module", () => {
       } else {
         process.env[AGENT_DIR_ENV] = previousAgentDir;
       }
+
       resetConfigCache();
       rmSync(cwd, { force: true, recursive: true });
       rmSync(agentDir, { force: true, recursive: true });
@@ -300,6 +310,7 @@ describe("Config Module", () => {
       JSON.stringify({ advisorScoutEnabled: false })
     );
     resetConfigCache();
+
     try {
       loadConfig(asExtensionContext({ cwd, isProjectTrusted: () => true }));
       expect(advisorScoutEnabledRef).toBe(false);
@@ -316,6 +327,7 @@ describe("Config Module", () => {
       } else {
         process.env[AGENT_DIR_ENV] = previousAgentDir;
       }
+
       resetConfigCache();
       rmSync(cwd, { force: true, recursive: true });
       rmSync(agentDir, { force: true, recursive: true });
@@ -354,9 +366,11 @@ describe("Config Module", () => {
       setAdvisorRedactSecretsRef(true);
       setAdvisorToolPoliciesRef({ bash: "summary", deploy: "exclude" });
       setAdvisorTrackedFileContentRef(true);
+
       const path = saveConfig(
         asExtensionContext({ cwd, isProjectTrusted: () => false })
       );
+
       expect(JSON.parse(readFileSync(path, "utf-8"))).toMatchObject({
         advisorAgentsMdContext: false,
         advisorAutoLoopGate: false,
@@ -386,12 +400,14 @@ describe("Config Module", () => {
       });
 
       const warnings: string[] = [];
+
       const ctx = asExtensionContext({
         cwd,
         hasUI: true,
         isProjectTrusted: () => false,
         ui: { notify: (message: string) => warnings.push(message) },
       });
+
       expect(() => loadConfig(ctx)).not.toThrow();
       expect(() => loadConfig(ctx)).not.toThrow();
       expect(warnings).toHaveLength(1);
@@ -405,6 +421,7 @@ describe("Config Module", () => {
       } else {
         process.env[AGENT_DIR_ENV] = previousAgentDir;
       }
+
       rmSync(cwd, { force: true, recursive: true });
       rmSync(agentDir, { force: true, recursive: true });
     }

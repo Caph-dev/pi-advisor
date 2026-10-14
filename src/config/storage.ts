@@ -25,6 +25,7 @@ export const configPaths = (ctx: ExtensionContext) => [
 ];
 
 type SavedConfigKey = PersistedConfigKey;
+
 type ConfigState = {
   [Key in SavedConfigKey]: AdvisorConfig[Key];
 };
@@ -46,6 +47,7 @@ const RESERVED_ADVISOR_JSON_KEYS = new Set(["typesafe_api_key"]);
 export const readExistingConfig = (path: string): RecordValue => {
   try {
     const parsed: unknown = JSON.parse(readFileSync(path, "utf-8"));
+
     return isRecord(parsed) ? parsed : {};
   } catch {
     return {};
@@ -56,7 +58,9 @@ const readConfigForSave = (path: string): RecordValue => {
   if (!existsSync(path)) {
     return {};
   }
+
   let parsed: unknown;
+
   try {
     parsed = JSON.parse(readFileSync(path, "utf-8"));
   } catch (error) {
@@ -65,11 +69,13 @@ const readConfigForSave = (path: string): RecordValue => {
       { cause: error }
     );
   }
+
   if (!isRecord(parsed)) {
     throw new Error(
       `Cannot save Advisor configuration at ${path}: configuration must be a JSON object.`
     );
   }
+
   return parsed;
 };
 
@@ -90,27 +96,34 @@ const applyChangedConfigValues = (
 ): RecordValue => {
   const dropped = new Set<string>();
   const data: RecordValue = { ...existing };
+
   for (const key of changedKeys) {
     if (!shouldPersistConfigKey(key, persistAdvisor, persistExecutor)) {
       continue;
     }
+
     const value = current[key];
     const isEmptyModelRef = (key === "advisor" || key === "executor") && !value;
+
     if (value === undefined || isEmptyModelRef) {
       dropped.add(key);
     } else {
       data[key] = value;
     }
   }
+
   if (dropped.size === 0) {
     return data;
   }
+
   const retained: RecordValue = {};
+
   for (const key of Object.keys(data)) {
     if (!dropped.has(key)) {
       retained[key] = data[key];
     }
   }
+
   return retained;
 };
 
@@ -121,6 +134,7 @@ let loadedConfigPath: string | undefined;
 const readConfig = (path: string): AdvisorConfig => {
   const config = JSON.parse(readFileSync(path, "utf-8"));
   validateConfig(config, path);
+
   return config;
 };
 
@@ -130,6 +144,7 @@ const configCache = new Map<
   string,
   { config: AdvisorConfig; identity: string }
 >();
+
 const warnedUnknownConfigIdentities = new Set<string>();
 
 /** Drops the parsed-configuration cache; the next load re-reads from disk. */
@@ -146,6 +161,7 @@ export const resetConfigCache = () => {
 const configIdentity = (path: string): string => {
   try {
     const stats = statSync(path, { bigint: true });
+
     return `${stats.mtimeNs}:${stats.ctimeNs}:${stats.size}:${stats.ino}:${stats.dev}`;
   } catch {
     return `unstattable:${process.hrtime.bigint()}`;
@@ -155,30 +171,39 @@ const configIdentity = (path: string): string => {
 const readConfigCached = (path: string): AdvisorConfig => {
   const identity = configIdentity(path);
   const cached = configCache.get(path);
+
   if (cached?.identity === identity) {
     return cached.config;
   }
+
   const config = readConfig(path);
   configCache.set(path, { config, identity });
+
   return config;
 };
 
 export const loadConfig = (_ctx: ExtensionContext) => {
   resetDefaults();
   const global = join(getAgentDir(), "advisor.json");
+
   const globalConfig = existsSync(global)
     ? readConfigCached(global)
     : undefined;
+
   setPersistedModelRefs(
     configuredModelRef(globalConfig?.advisor),
     configuredModelRef(globalConfig?.executor)
   );
+
   if (globalConfig) {
     applyConfig(globalConfig);
+
     const unknownKeys = unknownConfigKeys(globalConfig).filter(
       (key) => !RESERVED_ADVISOR_JSON_KEYS.has(key)
     );
+
     const warningIdentity = `${global}:${configIdentity(global)}`;
+
     if (
       unknownKeys.length > 0 &&
       _ctx.hasUI &&
@@ -191,12 +216,14 @@ export const loadConfig = (_ctx: ExtensionContext) => {
       warnedUnknownConfigIdentities.add(warningIdentity);
     }
   }
+
   // Repository-controlled project configuration is never applied. Models,
   // prompts, gates, budgets, disclosure, redaction, integrations, and consent
   // remain under the user's global Pi configuration.
   setAdvisorOutcomeLoggingRef(globalConfig?.advisorOutcomeLogging === true);
   loadedConfigState = currentConfigState();
   loadedConfigPath = global;
+
   return existsSync(global) ? global : null;
 };
 
@@ -220,15 +247,19 @@ export const saveConfig = (
   const persistExecutor = options.persistExecutor ?? true;
   const current = currentConfigState();
   const baseline = loadedConfigPath === path ? loadedConfigState : undefined;
+
   const changedKeys = baseline
     ? SAVED_CONFIG_KEYS.filter(
         (key) => !sameConfigValue(current[key], baseline[key])
       )
     : [...SAVED_CONFIG_KEYS];
+
   if (changedKeys.length === 0) {
     return path;
   }
+
   const existing = readConfigForSave(path);
+
   const data = applyChangedConfigValues(
     existing,
     current,
@@ -236,9 +267,11 @@ export const saveConfig = (
     persistAdvisor,
     persistExecutor
   );
+
   writeFileSync(path, `${JSON.stringify(data, null, 2)}\n`);
   resetConfigCache();
   const nextLoadedState = { ...current };
+
   if (!persistAdvisor) {
     nextLoadedState.advisor = baseline
       ? baseline.advisor
@@ -246,6 +279,7 @@ export const saveConfig = (
           isString(existing.advisor) ? existing.advisor : undefined
         );
   }
+
   if (!persistExecutor) {
     nextLoadedState.executor = baseline
       ? baseline.executor
@@ -253,8 +287,10 @@ export const saveConfig = (
           isString(existing.executor) ? existing.executor : undefined
         );
   }
+
   loadedConfigState = nextLoadedState;
   loadedConfigPath = path;
+
   return path;
 };
 
@@ -267,5 +303,6 @@ export const saveGlobalOutcomeLogging = (enabled: boolean) => {
     `${JSON.stringify({ ...existing, advisorOutcomeLogging: enabled }, null, 2)}\n`
   );
   resetConfigCache();
+
   return path;
 };

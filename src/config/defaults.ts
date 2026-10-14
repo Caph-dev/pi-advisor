@@ -130,6 +130,7 @@ const applyOptionalConfig = <Key extends keyof AdvisorConfig>(
   apply: (value: NonNullable<AdvisorConfig[Key]>) => void
 ) => {
   const value = config[key];
+
   if (value !== undefined) {
     apply(value);
   }

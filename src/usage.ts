@@ -38,6 +38,7 @@ const hasPartialProviderCost = (
   usage: RecordValue
 ) => {
   const cost = isRecordOf(usage.cost) ? usage.cost : undefined;
+
   return (
     cost !== undefined &&
     snapshot.cost === undefined &&
@@ -52,7 +53,9 @@ export const snapshotAdvisorUsage = <Input>(
   if (!isRecordOf(usage)) {
     return undefined;
   }
+
   const cost = isRecordOf(usage.cost) ? usage.cost : undefined;
+
   const snapshot = {
     cacheRead: finite(usage.cacheRead),
     cacheWrite: finite(usage.cacheWrite),
@@ -61,9 +64,11 @@ export const snapshotAdvisorUsage = <Input>(
     output: finite(usage.output),
     totalTokens: finite(usage.totalTokens),
   } satisfies AdvisorUsageSnapshot;
+
   const hasCostField = costFields.some(
     (field) => finite(cost?.[field]) !== undefined
   );
+
   return Object.values(snapshot).some((value) => value !== undefined) ||
     hasCostField
     ? snapshot
@@ -78,12 +83,15 @@ const completeUsageSnapshot = <Input>(
   usage: Input
 ): { snapshot: AdvisorUsageSnapshot; usage: RecordValue } | undefined => {
   const snapshot = snapshotAdvisorUsage(usage);
+
   if (!(snapshot && isRecordOf(usage))) {
     return;
   }
+
   if (hasPartialProviderCost(snapshot, usage)) {
     return;
   }
+
   return { snapshot, usage };
 };
 
@@ -94,19 +102,24 @@ const completeUsageSnapshot = <Input>(
  */
 export const advisorUsageForPi = <Input>(usage: Input): Usage | undefined => {
   const complete = completeUsageSnapshot(usage);
+
   if (!complete) {
     return undefined;
   }
+
   const { snapshot } = complete;
+
   const cost = isRecordOf(complete.usage.cost)
     ? complete.usage.cost
     : undefined;
+
   const input = snapshot.input ?? 0;
   const output = snapshot.output ?? 0;
   const cacheRead = snapshot.cacheRead ?? 0;
   const cacheWrite = snapshot.cacheWrite ?? 0;
   const cacheWrite1h = finite(complete.usage.cacheWrite1h);
   const reasoning = finite(complete.usage.reasoning);
+
   const piUsage: Usage = {
     cacheRead,
     cacheWrite,
@@ -122,12 +135,15 @@ export const advisorUsageForPi = <Input>(usage: Input): Usage | undefined => {
     totalTokens:
       snapshot.totalTokens ?? input + output + cacheRead + cacheWrite,
   };
+
   if (cacheWrite1h !== undefined) {
     piUsage.cacheWrite1h = cacheWrite1h;
   }
+
   if (reasoning !== undefined) {
     piUsage.reasoning = reasoning;
   }
+
   return piUsage;
 };
 
@@ -145,15 +161,18 @@ export const addAdvisorUsage = <Input>(
 ) => {
   totals.calls += 1;
   const snapshot = snapshotAdvisorUsage(usage);
+
   if (!snapshot) {
     return;
   }
+
   totals.knownCalls += 1;
   totals.cacheRead = add(totals.cacheRead, snapshot.cacheRead);
   totals.cacheWrite = add(totals.cacheWrite, snapshot.cacheWrite);
   totals.input = add(totals.input, snapshot.input);
   totals.output = add(totals.output, snapshot.output);
   totals.totalTokens = add(totals.totalTokens, snapshot.totalTokens);
+
   if (snapshot.cost !== undefined) {
     totals.cost = add(totals.cost, snapshot.cost);
     totals.costCalls += 1;
@@ -164,15 +183,19 @@ export const formatTokenCount = (value: number) => {
   if (value < 1000) {
     return String(value);
   }
+
   if (value < 10_000) {
     return `${(value / 1000).toFixed(1)}k`;
   }
+
   if (value < 1_000_000) {
     return `${Math.round(value / 1000)}k`;
   }
+
   if (value < 10_000_000) {
     return `${(value / 1_000_000).toFixed(1)}M`;
   }
+
   return `${Math.round(value / 1_000_000)}M`;
 };
 
@@ -191,17 +214,21 @@ const formatUsageFields = (usage: AdvisorUsageSnapshot): string | undefined => {
       ? undefined
       : `cw:${formatTokens(usage.cacheWrite)}`,
   ].filter((value): value is string => value !== undefined);
+
   if (tokens.length === 0 && usage.totalTokens !== undefined) {
     tokens.push(`tokens:${formatTokens(usage.totalTokens)}`);
   }
+
   if (usage.cost !== undefined) {
     tokens.push(formatCost(usage.cost));
   }
+
   return tokens.join(" · ") || undefined;
 };
 
 export const formatAdvisorUsage = <Input>(usage: Input): string | undefined => {
   const snapshot = snapshotAdvisorUsage(usage);
+
   return snapshot ? formatUsageFields(snapshot) : undefined;
 };
 
@@ -210,10 +237,12 @@ export const formatAdvisorUsageTotals = (
 ): string => {
   const usage = formatUsageFields(totals);
   const missing = totals.calls - totals.knownCalls;
+
   const parts = [
     usage,
     missing > 0 ? `${missing} without usage data` : undefined,
   ];
+
   return (
     parts.filter((value): value is string => value !== undefined).join(" · ") ||
     "unavailable"
@@ -226,6 +255,8 @@ export const formatAdvisorUsageStatus = (
   if (totals.calls === 0) {
     return undefined;
   }
+
   const label = `Advisor: ${totals.calls} call${totals.calls === 1 ? "" : "s"}`;
+
   return `${label} · ${formatAdvisorUsageTotals(totals)}`;
 };

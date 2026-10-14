@@ -35,6 +35,7 @@ const setupCommands = async (dir: string) => {
   let selector: any;
   const notices: string[] = [];
   registerCommands(mockPi({ commands }));
+
   const ctx = asExtensionContext({
     cwd: dir,
     hasUI: true,
@@ -47,13 +48,16 @@ const setupCommands = async (dir: string) => {
           { matches: () => false },
           () => {}
         );
+
         return undefined;
       },
       notify: (message: string) => notices.push(message),
       setStatus: () => {},
     },
   });
+
   await commands.get("advisor-settings").handler("", ctx);
+
   return { notices, selector };
 };
 
@@ -68,10 +72,12 @@ describe("Jev settings persistence", () => {
       },
       async (dir) => {
         const { notices, selector } = await setupCommands(dir);
+
         // SAFETY: applyJevProvider is the selector's typed persistence boundary exercised by the provider submenu.
         const providerSaved = (selector as any).applyJevProvider({
           transport: "openai-decisions",
         });
+
         expect(providerSaved).toBe(true);
         expect(savedConfig(dir)).toMatchObject({
           advisorJevTransport: "openai-decisions",
@@ -110,12 +116,14 @@ describe("Jev settings persistence", () => {
       },
       async (dir) => {
         const { selector } = await setupCommands(dir);
+
         // SAFETY: applyJevProvider is the selector's typed persistence boundary exercised by the provider submenu.
         const saved = (selector as any).applyJevProvider({
           baseUrl: "https://api.codiv.ai",
           keyProvider: "openrouter",
           transport: "typesafe-compatible",
         });
+
         expect(saved).toBe(true);
         expect(savedConfig(dir)).toMatchObject({
           advisorJevBaseUrl: "https://api.codiv.ai",
@@ -145,6 +153,7 @@ describe("Jev settings persistence", () => {
         const saved = (selector as any).applyJevProvider({
           transport: "openai-decisions",
         });
+
         expect(saved).toBe(false);
         expect(advisorJevTransportRef).toBe("auto");
         expect(getAdvisorSettings()).toMatchObject({

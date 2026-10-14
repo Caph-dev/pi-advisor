@@ -71,6 +71,7 @@ const toggle = (
 
 const scoutTimeoutItem = (settings: AdvisorSettings): SettingItem => {
   const timeoutMs = settings.scoutTimeoutMs ?? DEFAULT_SCOUT_TIMEOUT_MS;
+
   return {
     currentValue: String(timeoutMs),
     description:
@@ -86,15 +87,19 @@ const scoutTimeoutItem = (settings: AdvisorSettings): SettingItem => {
 
 const jevProviderLabel = (settings: AdvisorSettings): string => {
   const transport = settings.jevTransport ?? DEFAULT_JEV_TRANSPORT;
+
   if (transport === "auto") {
     return "Auto (TypeSafe → OpenRouter)";
   }
+
   if (transport === "typesafe-compatible") {
     const baseUrl = settings.jevBaseUrl ?? "no Base URL";
+
     return settings.jevKeyProvider
       ? `System One–compatible (${baseUrl}; Pi login "${settings.jevKeyProvider}")`
       : `System One–compatible (${baseUrl})`;
   }
+
   return providerName(transport);
 };
 
@@ -374,6 +379,7 @@ export const createSettingsItems = ({
     },
     fallbackModel,
   ];
+
   if (settings.simpleMode) {
     items.push(
       modelWhitelist,
@@ -385,6 +391,7 @@ export const createSettingsItems = ({
         true
       )
     );
+
     return items;
   }
 
@@ -607,17 +614,20 @@ export const createSettingsItems = ({
           onCancel: done,
           onSubmit: (value) => {
             let parsed: unknown;
+
             try {
               parsed = JSON.parse(value || "{}");
             } catch {
               return { error: "Enter a valid JSON object." };
             }
+
             if (!isValidAdvisorToolPolicies(parsed)) {
               return {
                 error:
                   "Use non-empty tool names with full, summary, or exclude values.",
               };
             }
+
             return { value: JSON.stringify(parsed) };
           },
           theme,
@@ -656,5 +666,6 @@ export const createSettingsItems = ({
       afterJevSetup
     )
   );
+
   return items;
 };

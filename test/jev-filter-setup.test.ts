@@ -15,6 +15,7 @@ const open = (
 ) => {
   const selections: JevFilterSelection[] = [];
   const done: (string | undefined)[] = [];
+
   const submenu = new JevFilterSubmenu(
     {
       currentTransport: "typesafe",
@@ -22,6 +23,7 @@ const open = (
       done: (value) => done.push(value),
       onSelection: (selection) => {
         selections.push(selection);
+
         return options.onSelection ? options.onSelection(selection) : true;
       },
       setupDeps: options.deps,
@@ -30,6 +32,7 @@ const open = (
     },
     {}
   );
+
   return { done, selections, submenu };
 };
 
@@ -69,6 +72,7 @@ describe("JevFilterSubmenu", () => {
       currentValue: "On",
       deps: resolved(),
     });
+
     await settle();
     submenu.handleInput("\r");
     await settle();
@@ -82,6 +86,7 @@ describe("JevFilterSubmenu", () => {
       deps: resolved(),
       onSelection: () => false,
     });
+
     await settle();
     submenu.handleInput("\r");
     await settle();
@@ -102,6 +107,7 @@ describe("JevFilterSubmenu", () => {
         resolveTransport: () => Promise.reject(new Error("keychain locked")),
       },
     });
+
     await settle();
     submenu.handleInput("\r");
     await settle();

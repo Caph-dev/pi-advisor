@@ -86,6 +86,7 @@ export const isValidAdvisorToolPolicies = (
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return false;
   }
+
   return Object.entries(value).every(
     ([toolName, policy]) =>
       toolName.trim().length > 0 &&

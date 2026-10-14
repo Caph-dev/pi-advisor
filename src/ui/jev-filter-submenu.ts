@@ -30,6 +30,7 @@ const labelFor = (action: FilterAction): string => {
   if (action === "enable") {
     return "Enable the filter";
   }
+
   return action === "disable" ? "Disable the filter" : "Done";
 };
 
@@ -64,24 +65,29 @@ export class JevFilterSubmenu implements Component, Focusable {
 
   render(width: number): string[] {
     const { theme } = this.options;
+
     const lines = [
       theme.fg("accent", theme.bold("  Jev/Decisions consultation filter")),
       "",
       `  Filter: ${this.enabled ? "On" : "Off"}`,
       `  Provider: ${this.options.currentTransport}`,
     ];
+
     if (this.mode === "resolving") {
       lines.push("", "  Checking the selected provider credentials…");
     } else if (this.notice) {
       lines.push("", theme.fg("warning", `  ${this.notice}`));
     }
+
     if (this.mode === "menu") {
       lines.push("");
+
       for (const [index, action] of actionsFor(this.enabled).entries()) {
         const prefix = index === this.selectedIndex ? "→ " : "  ";
         lines.push(`${prefix}${labelFor(action)}`);
       }
     }
+
     return lines.map((line) => truncateToWidth(line, width));
   }
 
@@ -89,7 +95,9 @@ export class JevFilterSubmenu implements Component, Focusable {
     if (this.mode !== "menu") {
       return;
     }
+
     const actions = actionsFor(this.enabled);
+
     if (
       matchesKey(keyData, Key.down) ||
       keyData === "\u001B[B" ||
@@ -108,11 +116,13 @@ export class JevFilterSubmenu implements Component, Focusable {
     } else {
       return;
     }
+
     this.options.tui.requestRender();
   }
 
   private async refresh(): Promise<void> {
     const transport = this.options.currentTransport;
+
     try {
       this.credentials = await this.deps.resolveTransport(
         transport === "auto" ? undefined : transport
@@ -121,9 +131,11 @@ export class JevFilterSubmenu implements Component, Focusable {
       this.credentials = undefined;
       this.notice = `Credential lookup failed: ${error instanceof Error ? error.message : String(error)}`;
     }
+
     if (!this.credentials && !this.notice) {
       this.notice = `No Jev provider resolves for "${transport}". Open Jev provider to configure one.`;
     }
+
     this.mode = "menu";
     this.options.tui.requestRender();
   }
@@ -137,20 +149,28 @@ export class JevFilterSubmenu implements Component, Focusable {
   private activate(action: FilterAction): void {
     if (action === "done") {
       this.options.done();
+
       return;
     }
+
     const enabled = action === "enable";
+
     if (enabled && !this.credentials) {
       // refresh() already explains why nothing resolved.
       this.options.tui.requestRender();
+
       return;
     }
+
     const saved = this.commit({ enabled });
+
     if (!saved) {
       this.notice = "The filter state could not be saved.";
       this.options.tui.requestRender();
+
       return;
     }
+
     this.enabled = enabled;
     this.notice = undefined;
     this.options.done(enabled ? "On" : "Off");
@@ -160,6 +180,7 @@ export class JevFilterSubmenu implements Component, Focusable {
     if (!this.options.onSelection) {
       return true;
     }
+
     return this.options.onSelection(selection);
   }
 }

@@ -21,9 +21,11 @@ const scoreAnswer = (
     score,
     type: "score",
   };
+
   if (legend) {
     answer.legend = legend;
   }
+
   return answer;
 };
 
@@ -179,6 +181,7 @@ describe("composeScreeningVerdict", () => {
         stakes: { legend: { "0": L0 }, probabilities: { "0": "not a number" } },
       },
     ];
+
     for (const invalid of invalidAnswers) {
       expect(composeScreeningVerdict(invalid, criteria)).toEqual({
         skip: false,
@@ -195,9 +198,11 @@ describe("composeScreeningVerdict", () => {
 
 const turnGateAnswers = (noul?: number) => {
   const answer: RecordValue = {};
+
   if (noul !== undefined) {
     answer.noul = noul;
   }
+
   return { should_consult: answer };
 };
 

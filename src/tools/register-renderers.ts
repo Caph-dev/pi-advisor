@@ -37,12 +37,15 @@ const formatByteSize = (bytes: number) => {
   if (bytes >= 1024 ** 3) {
     return `${(bytes / 1024 ** 3).toFixed(1)} GiB`;
   }
+
   if (bytes >= 1024 ** 2) {
     return `${(bytes / 1024 ** 2).toFixed(1)} MiB`;
   }
+
   if (bytes >= 1024) {
     return `${Math.round(bytes / 1024)} KiB`;
   }
+
   return `${bytes} B`;
 };
 
@@ -72,10 +75,12 @@ const addUsageLine = (
 ) => {
   if (getAdvisorSettings().showUsageDetails) {
     const usageText = formatAdvisorUsage(details?.usage);
+
     if (usageText) {
       box.addChild(new Text(theme.fg("dim", `  Usage: ${usageText}`), 0, 0));
     }
   }
+
   addAttachmentLine(box, details, theme);
 };
 
@@ -98,6 +103,7 @@ const scoutResultRenderer: EntryRenderer<ScoutToolDetails> = (
     Boolean(expanded),
     theme
   );
+
   return box;
 };
 
@@ -111,10 +117,13 @@ const turnGateResultRenderer: MessageRenderer<TurnGateResultDetails> = (
   box.addChild(
     new Text(theme.fg("warning", theme.bold("◆ ADVISOR · TURN REVIEW")), 0, 0)
   );
+
   if (details?.advisor) {
     box.addChild(new Text(theme.fg("dim", `  ${details.advisor}`), 0, 0));
   }
+
   addUsageLine(box, details, theme);
+
   if (details?.text) {
     box.addChild(
       new Markdown(
@@ -138,6 +147,7 @@ const turnGateResultRenderer: MessageRenderer<TurnGateResultDetails> = (
       )
     );
   }
+
   return box;
 };
 
@@ -158,10 +168,13 @@ const loopResultRenderer: MessageRenderer<LoopResultDetails> = (
       0
     )
   );
+
   if (details?.advisor) {
     box.addChild(new Text(theme.fg("dim", `  ${details.advisor}`), 0, 0));
   }
+
   addUsageLine(box, details, theme);
+
   if (details?.text) {
     box.addChild(
       new Markdown(
@@ -183,6 +196,7 @@ const loopResultRenderer: MessageRenderer<LoopResultDetails> = (
       )
     );
   }
+
   return box;
 };
 

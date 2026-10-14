@@ -33,14 +33,18 @@ export const selectAdvisorModels = async (
   if (!ctx.hasUI) {
     return undefined;
   }
+
   const refs = getAvailableModelRefs(ctx);
+
   if (refs && refs.length === 0) {
     ctx.ui.notify(
       "No selectable models are available. Configure a provider with /login or models.json, then retry.",
       "error"
     );
+
     return undefined;
   }
+
   const allOptions = [
     ...new Set(
       refs ??
@@ -49,6 +53,7 @@ export const selectAdvisorModels = async (
         )
     ),
   ];
+
   let {
     advisor,
     advisorEffort,
@@ -71,16 +76,20 @@ export const selectAdvisorModels = async (
           tui,
         })
     );
+
     if (!selectedExecutor) {
       return undefined;
     }
+
     const selectedExecutorEffort = await ctx.ui.select(
       "Select Executor Reasoning/Thinking Level",
       effortChoices(executorEffort)
     );
+
     if (!selectedExecutorEffort) {
       return undefined;
     }
+
     executor = selectedExecutor;
     executorEffort = selectedEffort(selectedExecutorEffort);
   }
@@ -99,16 +108,20 @@ export const selectAdvisorModels = async (
           tui,
         })
     );
+
     if (!selectedAdvisor) {
       return undefined;
     }
+
     const selectedAdvisorEffort = await ctx.ui.select(
       "Select Advisor Reasoning/Thinking Level",
       effortChoices(advisorEffort)
     );
+
     if (!selectedAdvisorEffort) {
       return undefined;
     }
+
     advisor = selectedAdvisor;
     advisorEffort = selectedEffort(selectedAdvisorEffort);
   }
@@ -132,9 +145,11 @@ export const selectAdvisorModels = async (
         tui,
       })
   );
+
   if (selectedFallback === undefined) {
     return undefined;
   }
+
   advisorFallbackModel =
     selectedFallback === FALLBACK_ADVISOR_MODEL_DISABLED
       ? undefined
@@ -143,6 +158,7 @@ export const selectAdvisorModels = async (
   if (!(advisor && executor)) {
     return undefined;
   }
+
   return {
     advisor,
     advisorEffort,

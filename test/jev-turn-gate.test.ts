@@ -21,6 +21,7 @@ import { asExtensionContext } from "./helpers/extension-context.ts";
 import { branchFromLines, systemOneMock } from "./helpers/jev-mock.ts";
 
 const credentials = { apiKey: "tsk-test", transport: "typesafe" as const };
+
 const openAiCredentials = () =>
   Promise.resolve({
     apiKey: "openai-platform-key",
@@ -29,9 +30,11 @@ const openAiCredentials = () =>
 
 const deferred = <Value>() => {
   let resolvePromise: ((value: Value) => void) | undefined;
+
   const promise = new Promise<Value>((resolve) => {
     resolvePromise = resolve;
   });
+
   return {
     promise,
     resolve: (value: Value) => resolvePromise?.(value),
@@ -68,10 +71,12 @@ const harness = (
   const session = new AdvisorSessionState();
   const sent: Harness["sent"] = [];
   let consults = 0;
+
   const registration: JevTurnGateRegistration = {
     activeTools: () => ["ask_advisor"],
     consult: async () => {
       consults += 1;
+
       const fallback: AdvisorConsultationResult = {
         adviceId: "id",
         markdown: "Proactive advice.",
@@ -80,6 +85,7 @@ const harness = (
         trigger: "turn-gate",
         usage: { cost: { total: 0.081 }, input: 5000, output: 900 },
       };
+
       return (await options.consultResult?.()) ?? fallback;
     },
     deps: {
@@ -89,6 +95,7 @@ const harness = (
     send: (message) => sent.push(message),
     session,
   };
+
   return { consultCount: () => consults, registration, sent, session };
 };
 
@@ -165,6 +172,7 @@ describe("handleJevTurnEnd", () => {
         usage: { input_tokens: 800, output_tokens: 0 },
       },
     ]);
+
     const refused = harness(refusedMock.fetch);
     refused.registration.deps = {
       fetch: refusedMock.fetch,
@@ -228,10 +236,13 @@ describe("handleJevTurnEnd", () => {
     setAdvisorMaxCallsPerSessionRef(1);
     const response = deferred<Response>();
     const started = deferred<undefined>();
+
     const h = harness(() => {
       started.resolve(undefined);
+
       return response.promise;
     });
+
     await turn(h);
     const pendingCheck = turn(h);
     await started.promise;
@@ -271,9 +282,11 @@ describe("handleJevTurnEnd", () => {
     await turn(off);
     expect(off.sent).toEqual([]);
     setSimpleModeRef(false);
+
     const inactive: Harness = {
       ...harness(systemOneMock([noulResponse(0.95)]).fetch),
     };
+
     inactive.registration.activeTools = () => [];
     await turn(inactive);
     await turn(inactive);
@@ -282,9 +295,11 @@ describe("handleJevTurnEnd", () => {
 
   test("a consultation failure records a gate failure and notifies once", async () => {
     const notifications: string[] = [];
+
     const h = harness(systemOneMock([noulResponse(0.95)]).fetch, {
       consultResult: () => Promise.reject(new Error("provider down")),
     });
+
     const ctx = ctxWith(notifications);
     await turn(h, ctx);
     await turn(h, ctx);
@@ -298,6 +313,7 @@ describe("handleJevTurnEnd", () => {
   test("missing credentials notify once with missing-key", async () => {
     const notifications: string[] = [];
     const session = new AdvisorSessionState();
+
     const registration: JevTurnGateRegistration = {
       activeTools: () => ["ask_advisor"],
       consult: () =>
@@ -312,6 +328,7 @@ describe("handleJevTurnEnd", () => {
       send: () => undefined,
       session,
     };
+
     const ctx = ctxWith(notifications);
     await handleJevTurnEnd(registration, ctx);
     await handleJevTurnEnd(registration, ctx);

@@ -57,30 +57,39 @@ export const lowestStakesProbability = <Answer>(
   if (!isRecordOf(answer)) {
     return undefined;
   }
+
   const probabilities = isRecordOf(answer.probabilities)
     ? answer.probabilities
     : {};
+
   const legend = isRecordOf(answer.legend) ? answer.legend : undefined;
+
   if (legend) {
     const exact = Object.keys(legend).find(
       (key) => legend[key] === STAKES_RUBRIC[0]
     );
+
     if (exact) {
       return finiteNumber(probabilities[exact]);
     }
   }
+
   const numericKeys = Object.keys(probabilities).filter((key) =>
     NUMERIC_KEY_PATTERN.test(key)
   );
+
   if (numericKeys.length === 0) {
     return undefined;
   }
+
   let [lowest] = numericKeys;
+
   for (const key of numericKeys) {
     if (Number(key) < Number(lowest)) {
       lowest = key;
     }
   }
+
   return finiteNumber(probabilities[lowest]);
 };
 
@@ -97,12 +106,16 @@ export const composeScreeningVerdict = <Answers>(
   if (!isRecordOf(answers)) {
     return { skip: false };
   }
+
   const negligibleMass = lowestStakesProbability(answers.stakes);
   const noul = selfAnswerableNoul(answers.self_answerable);
+
   if (negligibleMass === undefined || noul === undefined) {
     return { skip: false };
   }
+
   const confidentlySelfAnswerable = noul >= 0.5 + noulMargin;
+
   return {
     skip: negligibleMass >= skipConfidence && confidentlySelfAnswerable,
   };
@@ -116,7 +129,9 @@ export const composeTurnGateVerdict = <Answers>(
   if (!isRecordOf(answers)) {
     return false;
   }
+
   const answer = answers.should_consult;
   const noul = isRecordOf(answer) ? finiteNumber(answer.noul) : undefined;
+
   return noul !== undefined && noul >= threshold;
 };

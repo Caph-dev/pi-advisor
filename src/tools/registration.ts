@@ -40,6 +40,7 @@ export const registerAdvisorTool = (
   registerToolLifecycle(registration);
   registerAskAdvisorTool(registration);
   registerOutcomeTool(registration);
+
   const turnGate: JevTurnGateRegistration = {
     activeTools: () => pi.getActiveTools(),
     consult: registration.consult,
@@ -47,8 +48,10 @@ export const registerAdvisorTool = (
     send: (message) => pi.sendMessage(message, { deliverAs: "steer" }),
     session,
   };
+
   if (dependencies.turnGateDeps) {
     turnGate.deps = dependencies.turnGateDeps;
   }
+
   registerJevTurnGate((event, handler) => pi.on(event, handler), turnGate);
 };

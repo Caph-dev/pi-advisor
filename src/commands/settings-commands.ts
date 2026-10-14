@@ -36,8 +36,10 @@ const persistJevSettings = (
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     ctx.ui.notify(`Could not save Advisor settings: ${message}`, "error");
+
     return false;
   }
+
   try {
     setAdvisorToolsActive(runtime.pi, settings.advisorToolsEnabled ?? true);
     runtime.updateSameModelNotice(ctx);
@@ -49,6 +51,7 @@ const persistJevSettings = (
       "warning"
     );
   }
+
   return true;
 };
 
@@ -80,18 +83,23 @@ export const registerSettingsCommands = (runtime: CommandRuntime) => {
             onChange: (settings) => {
               const toolsWereEnabled =
                 getAdvisorSettings().advisorToolsEnabled ?? true;
+
               const toolsEnabled = settings.advisorToolsEnabled ?? true;
+
               try {
                 saveAdvisorSettings(ctx, settings);
+
                 if (toolsWereEnabled !== toolsEnabled) {
                   runtime.noteAdvisorToolsStateChange();
                 }
+
                 setAdvisorToolsActive(runtime.pi, toolsEnabled);
                 runtime.updateSameModelNotice(ctx);
                 runtime.updateAdvisorUsageStatus(ctx);
               } catch (error) {
                 const toolsDisabled =
                   toolsWereEnabled && settings.advisorToolsEnabled === false;
+
                 if (toolsDisabled) {
                   runtime.noteAdvisorToolsStateChange();
                   setAdvisorToolsEnabledRef(false);
@@ -99,8 +107,10 @@ export const registerSettingsCommands = (runtime: CommandRuntime) => {
                   setAdvisorToolsActive(runtime.pi, false);
                   runtime.resetSameModelNotice();
                 }
+
                 const message =
                   error instanceof Error ? error.message : String(error);
+
                 ctx.ui.notify(
                   toolsDisabled
                     ? `Could not save Advisor settings; tools remain disabled for this session. ${message}`
@@ -128,6 +138,7 @@ export const registerSettingsCommands = (runtime: CommandRuntime) => {
       runtime.noteAdvisorToolsStateChange();
       setAdvisorToolsActive(runtime.pi, false);
       runtime.resetSameModelNotice();
+
       try {
         loadConfig(ctx);
       } catch (error) {
@@ -139,14 +150,18 @@ export const registerSettingsCommands = (runtime: CommandRuntime) => {
           `Advisor tools disabled for this session, but configuration could not be reloaded: ${message}`,
           "error"
         );
+
         return Promise.resolve();
       }
+
       const wasAlwaysOn = alwaysOnRef;
       const persisted = getPersistedModelRefs();
       setAdvisorToolsEnabledRef(false);
+
       if (wasAlwaysOn) {
         setAlwaysOnRef(false);
       }
+
       try {
         saveConfig(ctx, {
           persistAdvisor: Boolean(persisted.advisor),
@@ -159,13 +174,16 @@ export const registerSettingsCommands = (runtime: CommandRuntime) => {
           `Advisor tools disabled for this session, but the setting could not be saved: ${message}`,
           "error"
         );
+
         return Promise.resolve();
       }
+
       notify(
         ctx,
         `Advisor tools disabled. Current model unchanged.${wasAlwaysOn ? " Always on turned off." : ""}`,
         "info"
       );
+
       return Promise.resolve();
     },
   });

@@ -16,6 +16,7 @@ import { asExtensionContext } from "./helpers/extension-context.ts";
 import { branchFromLines, systemOneMock } from "./helpers/jev-mock.ts";
 
 const credentials = { apiKey: "tsk-test", transport: "typesafe" as const };
+
 const openAiTransport = () =>
   Promise.resolve({
     apiKey: "openai-platform-key",
@@ -24,6 +25,7 @@ const openAiTransport = () =>
 
 const summaryLine = (session: AdvisorSessionState) => {
   const summary = session.summary(undefined) ?? "";
+
   return (
     summary
       .split("\n")
@@ -126,6 +128,7 @@ describe("screenConsultation", () => {
       "ship it?"
     );
     let calls = 0;
+
     const outcome = await screenConsultation(
       ctxWith(),
       session,
@@ -133,17 +136,21 @@ describe("screenConsultation", () => {
       {
         fetch: (input: string, init?: RequestInit) => {
           calls += 1;
+
           return systemOneMock([]).fetch(input, init);
         },
         resolveTransport: () => Promise.resolve(credentials),
       }
     );
+
     expect(calls).toBe(0);
     expect(outcome.decision).toBe("skip");
+
     if (outcome.decision === "skip") {
       expect(outcome.kind).toBe("repeat");
       expect(outcome.reattachedAdvice).toContain("migration plan");
     }
+
     const summary = session.summary(undefined) ?? "";
     expect(summary).toContain(
       "Consultation dedup: 1 repeat question skipped, earlier advice reattached"
@@ -168,6 +175,7 @@ describe("screenConsultation", () => {
     });
 
     expect(outcome.decision).toBe("skip");
+
     if (outcome.decision === "skip") {
       expect(Buffer.byteLength(outcome.reattachedAdvice ?? "", "utf-8")).toBe(
         4 * 1024
@@ -178,6 +186,7 @@ describe("screenConsultation", () => {
   test("allows on confident negligible stakes AND self-answerable only otherwise skips", async () => {
     const session = new AdvisorSessionState();
     const allowMock = systemOneMock([verdictResponse(0.2, 0.9)]);
+
     const allow = await screenConsultation(
       ctxWith(),
       session,
@@ -187,9 +196,11 @@ describe("screenConsultation", () => {
         resolveTransport: () => Promise.resolve(credentials),
       }
     );
+
     expect(allow).toEqual({ decision: "allow" });
 
     const skipMock = systemOneMock([verdictResponse(0.95, 0.9)]);
+
     const skip = await screenConsultation(
       ctxWith(),
       session,
@@ -199,7 +210,9 @@ describe("screenConsultation", () => {
         resolveTransport: () => Promise.resolve(credentials),
       }
     );
+
     expect(skip.decision).toBe("skip");
+
     if (skip.decision === "skip") {
       expect(skip.kind).toBe("screened");
       expect(skip.reason).toContain("low stakes");
@@ -216,6 +229,7 @@ describe("screenConsultation", () => {
         resolveTransport: openAiTransport,
       }
     );
+
     expect(screened.decision).toBe("skip");
 
     const uncertain = await screenConsultation(
@@ -227,6 +241,7 @@ describe("screenConsultation", () => {
         resolveTransport: openAiTransport,
       }
     );
+
     expect(uncertain).toEqual({ decision: "allow" });
 
     const malformed = await screenConsultation(
@@ -249,6 +264,7 @@ describe("screenConsultation", () => {
         resolveTransport: openAiTransport,
       }
     );
+
     expect(malformed).toEqual({ decision: "allow" });
 
     const unauthorized = await screenConsultation(
@@ -262,11 +278,13 @@ describe("screenConsultation", () => {
         resolveTransport: openAiTransport,
       }
     );
+
     expect(unauthorized).toEqual({ decision: "allow" });
   });
 
   test("records Decisions tokens while showing unavailable endpoint cost", async () => {
     const session = new AdvisorSessionState();
+
     const outcome = await screenConsultation(
       ctxWith(),
       session,
@@ -280,6 +298,7 @@ describe("screenConsultation", () => {
           }),
       }
     );
+
     expect(outcome.decision).toBe("skip");
     expect(session.summary(undefined)).toContain(
       "Jev/Decisions cost: ↑900 tokens · cost unavailable (Decisions billing unconfirmed)"
@@ -288,10 +307,12 @@ describe("screenConsultation", () => {
 
   test("records ledger counts and Jev spend on the session", async () => {
     const session = new AdvisorSessionState();
+
     const mock = systemOneMock([
       verdictResponse(0.95, 0.9),
       verdictResponse(0.2, 0.9),
     ]);
+
     await screenConsultation(
       ctxWith(),
       session,
@@ -320,6 +341,7 @@ describe("screenConsultation", () => {
   test("missing credentials allow with one missing-key notification", async () => {
     const notifications: string[] = [];
     const session = new AdvisorSessionState();
+
     const outcome = await screenConsultation(
       ctxWith({ notifications }),
       session,
@@ -330,6 +352,7 @@ describe("screenConsultation", () => {
         resolveTransport: () => Promise.resolve(undefined),
       }
     );
+
     expect(outcome).toEqual({ decision: "allow" });
     expect(notifications).toHaveLength(1);
     expect(notifications[0]).toContain("missing-key");
@@ -352,6 +375,7 @@ describe("screenConsultation", () => {
     const controller = new AbortController();
     const session = new AdvisorSessionState();
     const mock = systemOneMock([{ body: { error: "slow down" }, status: 429 }]);
+
     const pending = screenConsultation(
       ctxWith({ notifications }),
       session,
@@ -359,6 +383,7 @@ describe("screenConsultation", () => {
       {
         fetch: (input: string, init?: RequestInit) => {
           controller.abort();
+
           return mock.fetch(input, init);
         },
         resolveTransport: () => Promise.resolve(credentials),
@@ -375,6 +400,7 @@ describe("screenConsultation", () => {
     const notifications: string[] = [];
     const session = new AdvisorSessionState();
     const mock = systemOneMock([{ body: { error: "bad key" }, status: 401 }]);
+
     const outcome = await screenConsultation(
       ctxWith({ notifications }),
       session,
@@ -384,6 +410,7 @@ describe("screenConsultation", () => {
         resolveTransport: () => Promise.resolve(credentials),
       }
     );
+
     expect(outcome).toEqual({ decision: "allow" });
     expect(notifications).toHaveLength(1);
     expect(notifications[0]).toContain("(auth)");
@@ -405,6 +432,7 @@ describe("screenConsultation", () => {
     const notifications: string[] = [];
     const session = new AdvisorSessionState();
     const mock = systemOneMock([{ answers: "garbage" }]);
+
     const outcome = await screenConsultation(
       ctxWith({ notifications }),
       session,
@@ -414,6 +442,7 @@ describe("screenConsultation", () => {
         resolveTransport: () => Promise.resolve(credentials),
       }
     );
+
     expect(outcome).toEqual({ decision: "allow" });
     expect(notifications[0]).toContain("(malformed)");
   });
@@ -428,6 +457,7 @@ describe("screenConsultation", () => {
       "which import order?"
     );
     let calls = 0;
+
     const mock = systemOneMock([
       {
         ...verdictResponse(0, 0),
@@ -436,6 +466,7 @@ describe("screenConsultation", () => {
         },
       },
     ]);
+
     const outcome = await screenConsultation(
       ctxWith(),
       session,
@@ -445,17 +476,21 @@ describe("screenConsultation", () => {
       {
         fetch: (input: string, init?: RequestInit) => {
           calls += 1;
+
           return mock.fetch(input, init);
         },
         resolveTransport: () => Promise.resolve(credentials),
       }
     );
+
     expect(calls).toBe(0);
     expect(outcome.decision).toBe("skip");
+
     if (outcome.decision === "skip") {
       expect(outcome.kind).toBe("repeat");
       expect(outcome.reattachedAdvice).toContain("migration plan");
     }
+
     expect(summaryLine(session)).toBe("");
     expect(session.summary(undefined) ?? "").toContain(
       "Consultation dedup: 1 repeat question skipped, earlier advice reattached"
@@ -474,6 +509,7 @@ describe("screenConsultation", () => {
         resolveTransport: () => Promise.resolve(credentials),
       }
     );
+
     const forced = await screenConsultation(
       ctxWith(),
       session,
@@ -483,6 +519,7 @@ describe("screenConsultation", () => {
         resolveTransport: () => Promise.resolve(credentials),
       }
     );
+
     expect(forced).toEqual({ decision: "allow" });
     expect(summaryLine(session)).toContain("1 override");
   });
@@ -502,6 +539,7 @@ describe("screenConsultation", () => {
     session.recordCompletedTurn();
     session.recordCompletedTurn();
     let calls = 0;
+
     const outcome = await screenConsultation(
       ctxWith(),
       session,
@@ -509,11 +547,13 @@ describe("screenConsultation", () => {
       {
         fetch: (input: string, init?: RequestInit) => {
           calls += 1;
+
           return systemOneMock([]).fetch(input, init);
         },
         resolveTransport: () => Promise.resolve(credentials),
       }
     );
+
     expect(outcome).toEqual({ decision: "allow" });
     expect(calls).toBe(0);
     expect(summaryLine(session)).toContain("1 override");
@@ -532,10 +572,13 @@ describe("screenConsultation", () => {
         resolveTransport: () => Promise.resolve(credentials),
       }
     );
+
     for (let turn = 0; turn < 3; turn += 1) {
       session.recordCompletedTurn();
     }
+
     const later = systemOneMock([verdictResponse(0.95, 0.9)]);
+
     const outcome = await screenConsultation(
       ctxWith(),
       session,
@@ -545,12 +588,14 @@ describe("screenConsultation", () => {
         resolveTransport: () => Promise.resolve(credentials),
       }
     );
+
     expect(outcome.decision).toBe("skip");
     expect(later.captured).toHaveLength(1);
   });
 
   test("empty questions never match repeats or passthroughs", async () => {
     const session = new AdvisorSessionState();
+
     const first = await screenConsultation(
       ctxWith(),
       session,
@@ -560,7 +605,9 @@ describe("screenConsultation", () => {
         resolveTransport: () => Promise.resolve(credentials),
       }
     );
+
     expect(first.decision).toBe("skip");
+
     const second = await screenConsultation(
       ctxWith(),
       session,
@@ -570,6 +617,7 @@ describe("screenConsultation", () => {
         resolveTransport: () => Promise.resolve(credentials),
       }
     );
+
     expect(second).toEqual({ decision: "allow" });
   });
 });

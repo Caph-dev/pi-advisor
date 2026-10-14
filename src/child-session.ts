@@ -8,6 +8,7 @@ export const effectiveExecutorRef = (ctx: ExtensionContext) => {
   if (isMarkedSubagent() && ctx.model) {
     return `${ctx.model.provider}/${ctx.model.id}`;
   }
+
   return executorRef;
 };
 

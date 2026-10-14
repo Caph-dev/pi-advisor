@@ -157,6 +157,7 @@ export const saveAdvisorSettings = (
   options: SaveAdvisorSettingsOptions = {}
 ) => {
   const previous = getAdvisorSettings();
+
   try {
     applyAdvisorSettings(settings);
     const persisted = getPersistedModelRefs();
@@ -164,6 +165,7 @@ export const saveAdvisorSettings = (
       persistAdvisor: Boolean(persisted.advisor),
       persistExecutor: Boolean(persisted.executor),
     });
+
     if (!options.skipOutcomeLogging) {
       saveGlobalOutcomeLogging(settings.outcomeLogging ?? false);
     }

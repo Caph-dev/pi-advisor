@@ -44,7 +44,9 @@ const resolveActivationModels = async (
   if (!canContinue()) {
     return { cancelled: true };
   }
+
   const executor = findConfiguredModel(ctx, executorRef);
+
   if (!executor) {
     return {
       error: executorRef
@@ -52,7 +54,9 @@ const resolveActivationModels = async (
         : "Executor model not configured",
     };
   }
+
   const advisor = findConfiguredModel(ctx, advisorRef);
+
   if (!advisor) {
     return {
       error: advisorRef
@@ -60,16 +64,21 @@ const resolveActivationModels = async (
         : "Advisor model not configured",
     };
   }
+
   const advisorAuth = await ctx.modelRegistry.getApiKeyAndHeaders(advisor);
+
   if (!canContinue()) {
     return { cancelled: true };
   }
+
   if (!(advisorAuth.ok && advisorAuth.apiKey)) {
     return { error: `No API key for Advisor ${advisorRef}` };
   }
+
   if (!isMarkedSubagent() && !(await runtime.setExecutorModel(executor))) {
     return { error: `No API key for Executor ${executorRef}` };
   }
+
   return {};
 };
 
@@ -99,19 +108,25 @@ const persistSuccessfulActivation = (
   if (!shouldSave) {
     return true;
   }
+
   try {
     saveConfig(ctx, { persistAdvisor: true, persistExecutor: true });
   } catch (saveError) {
     if (!reenableTools) {
       throw saveError;
     }
+
     setAdvisorToolsEnabledRef(false);
     restoreRefs();
+
     const message =
       saveError instanceof Error ? saveError.message : String(saveError);
+
     notify(ctx, `Could not save Advisor activation: ${message}`, "error");
+
     return false;
   }
+
   return true;
 };
 
@@ -124,9 +139,12 @@ export const activateAdvisor = async (
   if (!loadCommandConfig(ctx)) {
     return;
   }
+
   const { toolAvailabilityRevision } = runtime;
+
   const canContinue = () =>
     runtime.toolAvailabilityRevision === toolAvailabilityRevision;
+
   const previous = {
     advisor: advisorRef,
     advisorEffort: advisorEffortRef,
@@ -134,34 +152,43 @@ export const activateAdvisor = async (
     executor: executorRef,
     executorEffort: executorEffortRef,
   };
+
   const liveSnapshot = liveRefSnapshot;
+
   // Restores only refs this activation still owns. A concurrent settings
   // save that replaced a ref keeps its newer value.
   const restoreRefs = (attempted: ReturnType<typeof liveSnapshot>) => {
     if (advisorRef === attempted.advisor) {
       setAdvisorRef(previous.advisor);
     }
+
     if (advisorEffortRef === attempted.advisorEffort) {
       setAdvisorEffortRef(previous.advisorEffort);
     }
+
     if (contextMaxCharsRef === attempted.contextMaxChars) {
       setContextMaxCharsRef(previous.contextMaxChars);
     }
+
     if (executorRef === attempted.executor) {
       setExecutorRef(previous.executor);
     }
+
     if (executorEffortRef === attempted.executorEffort) {
       setExecutorEffortRef(previous.executorEffort);
     }
   };
+
   let attempted = liveRefSnapshot();
   const executorOverride = hasExecutorOverride(args);
   const advisorOverride = hasAdvisorOverride(args);
   const argumentError = parseArgs(args);
+
   if (argumentError) {
     attempted = liveRefSnapshot();
     restoreRefs(attempted);
     notify(ctx, argumentError, "error");
+
     return;
   }
 
@@ -172,37 +199,47 @@ export const activateAdvisor = async (
     executorOverride,
     advisorOverride
   );
+
   if (!prepared) {
     attempted = liveRefSnapshot();
     restoreActivationRefsIfCurrent(canContinue, () => restoreRefs(attempted));
+
     return;
   }
+
   const { cancelled, error } = await resolveActivationModels(
     runtime,
     ctx,
     canContinue
   );
+
   if (cancelled || !canContinue()) {
     return;
   }
+
   if (error) {
     restoreRefs(attempted);
     notify(ctx, error, "error");
+
     return;
   }
+
   // parseArgs, model picking, and an inactive `/model` selection only mutate
   // in-memory refs. Persist them once both models are known and authenticated,
   // so an unusable model reference is never written to the configuration.
   const reenableTools = !advisorToolsEnabledRef;
+
   if (reenableTools) {
     setAdvisorToolsEnabledRef(true);
   }
+
   const shouldSave = Boolean(
     args.trim() ||
     prepared.pickedModels ||
     prepared.pendingExecutor ||
     reenableTools
   );
+
   if (
     !persistSuccessfulActivation(ctx, shouldSave, reenableTools, () =>
       restoreRefs(liveRefSnapshot())
@@ -210,19 +247,25 @@ export const activateAdvisor = async (
   ) {
     return;
   }
+
   // A successful activation has committed the effective Executor. Do not let
   // an older inactive selection override an explicit activation argument on a
   // later attempt.
   runtime.pendingExecutorModelRef = undefined;
+
   if (executorEffortRef && !isMarkedSubagent()) {
     // SAFETY: executorEffortRef is operator-configured and trusted to name a ThinkingLevel.
     runtime.pi.setThinkingLevel(executorEffortRef as ThinkingLevel);
   }
+
   setAdvisorToolsActive(runtime.pi, true);
+
   const activeModel = isMarkedSubagent()
     ? ctx.model
     : findConfiguredModel(ctx, executorRef);
+
   runtime.updateSameModelNotice(ctx, activeModel);
+
   if (announce) {
     const activeExecutorRef = effectiveExecutorRef(ctx);
     const activeExecutorEffort = effectiveExecutorEffort(ctx);

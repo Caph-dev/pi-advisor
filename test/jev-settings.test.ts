@@ -63,6 +63,7 @@ const openSelector = (
   } = {}
 ) => {
   const saved: any[] = [];
+
   const selector = new AdvisorSettingsSelector({
     effortLevels: ["Default (Model Default)", "low", "high"],
     initial: {
@@ -87,6 +88,7 @@ const openSelector = (
     theme: plainThemeMock,
     tui: { requestRender: () => undefined },
   });
+
   return { saved, selector };
 };
 
@@ -117,10 +119,13 @@ const focusJevFilterRow = (selector: any) => {
   for (let presses = 0; presses < 60; presses += 1) {
     if (plainScreen(selector).includes("→ Jev/Decisions consultation filter")) {
       selector.handleInput("\r");
+
       return;
     }
+
     selector.handleInput("\u001B[B");
   }
+
   throw new Error("Jev/Decisions consultation filter row not reachable");
 };
 
@@ -128,10 +133,13 @@ const focusJevProviderRow = (selector: any) => {
   for (let presses = 0; presses < 60; presses += 1) {
     if (plainScreen(selector).includes("→ Jev provider")) {
       selector.handleInput("\r");
+
       return;
     }
+
     selector.handleInput("\u001B[B");
   }
+
   throw new Error("Jev provider row not reachable");
 };
 
@@ -195,6 +203,7 @@ describe("Jev shared settings", () => {
         true
       );
       expect(validateConfig({ advisorJevKeyProvider: "" })).toBe(true);
+
       for (const [invalid, pattern] of INVALID_SETTINGS) {
         expect(() => validateConfig(invalid)).toThrow(pattern);
       }
@@ -213,6 +222,7 @@ describe("Jev shared settings", () => {
           cwd: "/",
           isProjectTrusted: () => false,
         });
+
         loadConfig(ctx);
         expect(advisorJevBaseUrlRef).toBe("https://api.codiv.ai/v1");
         expect(advisorJevKeyProviderRef).toBe("openrouter");
@@ -242,6 +252,7 @@ describe("Jev shared settings", () => {
           cwd: "/",
           isProjectTrusted: () => false,
         });
+
         loadConfig(ctx);
         setAdvisorJevBaseUrlRef(undefined);
         setAdvisorJevKeyProviderRef(undefined);
@@ -261,6 +272,7 @@ describe("Jev shared settings", () => {
         cwd: "/",
         isProjectTrusted: () => false,
       });
+
       loadConfig(ctx);
       expect(advisorJevTransportRef).toBe("openai-decisions");
       setAdvisorJevTransportRef("openai-decisions");
@@ -347,6 +359,7 @@ describe("Jev shared settings", () => {
       jevTimeoutMs: 8000,
       jevTransport: "auto",
     });
+
     changeSetting(selector, "Jev timeout ms");
     expect(saved.at(-1)).toMatchObject({ jevTimeoutMs: 15_000 });
     changeSetting(selector, "Jev digest chars");
@@ -370,6 +383,7 @@ describe("Jev shared settings", () => {
   test("the Jev provider row saves a verified provider and commits local state", async () => {
     const selections: JevProviderSelection[] = [];
     const candidates: AdvisorSettings[] = [];
+
     const { selector } = openSelector(
       { jevFilterEnabled: false, jevTransport: "auto" },
       {
@@ -377,10 +391,12 @@ describe("Jev shared settings", () => {
         onJevProvider: (selection, settings) => {
           selections.push(selection);
           candidates.push(settings);
+
           return true;
         },
       }
     );
+
     focusJevProviderRow(selector);
     await settle();
     // SAFETY: the setup component is the submenu installed for the focused provider row.
@@ -402,6 +418,7 @@ describe("Jev shared settings", () => {
       { jevFilterEnabled: false, jevTransport: "auto" },
       { jevSetupDeps: verifiedDeps(), onJevProvider: () => false }
     );
+
     focusJevProviderRow(selector);
     await settle();
     // SAFETY: the setup component is the submenu installed for the focused provider row.
@@ -418,16 +435,19 @@ describe("Jev shared settings", () => {
 
   test("the Jev filter row enables independently of the provider rows", async () => {
     const selections: JevFilterSelection[] = [];
+
     const { selector } = openSelector(
       { jevFilterEnabled: false, jevTransport: "typesafe" },
       {
         jevSetupDeps: verifiedDeps(),
         onJevFilter: (selection) => {
           selections.push(selection);
+
           return true;
         },
       }
     );
+
     focusJevFilterRow(selector);
     await settle();
     // SAFETY: the setup component is the submenu installed for the focused filter row.
@@ -445,6 +465,7 @@ describe("Jev shared settings", () => {
 
   test("the Jev filter row refuses to enable without a resolvable provider", async () => {
     const selections: JevFilterSelection[] = [];
+
     const { selector } = openSelector(
       { jevFilterEnabled: false, jevTransport: "auto" },
       {
@@ -454,10 +475,12 @@ describe("Jev shared settings", () => {
         },
         onJevFilter: (selection) => {
           selections.push(selection);
+
           return true;
         },
       }
     );
+
     focusJevFilterRow(selector);
     await settle();
     // SAFETY: the setup component is the submenu installed for the focused filter row.
@@ -474,6 +497,7 @@ describe("Jev shared settings", () => {
       { jevFilterEnabled: false, jevTransport: "typesafe" },
       { jevSetupDeps: verifiedDeps(), onJevFilter: () => false }
     );
+
     focusJevFilterRow(selector);
     await settle();
     // SAFETY: the setup component is the submenu installed for the focused filter row.
@@ -492,16 +516,19 @@ describe("Jev shared settings", () => {
 
   test("the deprecated onJevSetup callback still receives the provider row", async () => {
     const selections: JevSetupSelection[] = [];
+
     const { selector } = openSelector(
       { jevFilterEnabled: false, jevTransport: "auto" },
       {
         jevSetupDeps: verifiedDeps(),
         onJevSetup: (selection) => {
           selections.push(selection);
+
           return true;
         },
       }
     );
+
     focusJevProviderRow(selector);
     await settle();
     // SAFETY: the setup component is the submenu installed for the focused provider row.
@@ -514,15 +541,19 @@ describe("Jev shared settings", () => {
 
   test("the Jev model submenu applies a trimmed custom model", () => {
     const { saved, selector } = openSelector();
+
     const presses = (() => {
       for (let i = 0; i < 60; i += 1) {
         if (plainScreen(selector).includes("→ Jev model")) {
           return i;
         }
+
         selector.handleInput("\u001B[B");
       }
+
       throw new Error("Jev model row not reachable");
     })();
+
     expect(presses).toBeGreaterThanOrEqual(0);
     selector.handleInput("\r");
     // SAFETY: settingsList.submenuComponent is the live submenu the selector installed on open.

@@ -2,13 +2,16 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 
 const packageJson = JSON.parse(readFileSync("package.json", "utf-8"));
+
 const [result] = JSON.parse(
   execFileSync("npm", ["pack", "--dry-run", "--json"], {
     encoding: "utf-8",
     stdio: ["ignore", "pipe", "inherit"],
   })
 );
+
 const actualFiles = result.files.map(({ path }) => path).toSorted();
+
 const expectedFiles = [
   "CHANGELOG.md",
   "LICENSE",
@@ -131,6 +134,7 @@ const expectedFiles = [
 const benchmarkFiles = actualFiles.filter(
   (path) => path === "bench" || path.startsWith("bench/")
 );
+
 if (actualFiles.includes("bun.lock")) {
   throw new Error("Repository-only bun.lock leaked into the package.");
 }

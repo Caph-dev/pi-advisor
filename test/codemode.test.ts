@@ -35,6 +35,7 @@ const harness = (
       ...dependencies,
     }
   );
+
   const ctx = asExtensionContext({
     cwd,
     hasUI: false,
@@ -42,9 +43,11 @@ const harness = (
     model: { id: modelId, provider: "provider" },
     sessionManager: { buildContextEntries: () => [], getBranch: () => [] },
   });
+
   const tool = tools.get("ask_advisor");
   let ordinal = 0;
   const results: any[] = [];
+
   const run = (code: string) =>
     // SAFETY: this fixture supplies every context member the real Codemode executor consumes.
     executeCodemode("code", { code }, undefined, undefined, {
@@ -54,6 +57,7 @@ const harness = (
         const toolCallId = `code/${ordinal}`;
         let result;
         let isError = false;
+
         try {
           const block = await events.get("tool_call")(
             {
@@ -64,12 +68,15 @@ const harness = (
             },
             ctx
           );
+
           if (block?.block) {
             throw new Error(block.reason);
           }
+
           if (!Value.Check(tool.parameters, args)) {
             throw new Error("Invalid tool arguments");
           }
+
           result = await tool.execute(
             toolCallId,
             args,
@@ -87,8 +94,10 @@ const harness = (
             details: undefined,
           };
         }
+
         results.push(result);
         await events.get("tool_result")({ toolName: name });
+
         return {
           isError,
           result,
@@ -97,6 +106,7 @@ const harness = (
       },
       tools: [tool],
     } as any);
+
   return { ctx, results, run, session, tool };
 };
 
@@ -105,9 +115,11 @@ const scriptText = (result: any) =>
 
 const scriptValue = (result: Awaited<ReturnType<typeof executeCodemode>>) => {
   const last = result.content.at(-1);
+
   if (last?.type !== "text") {
     throw new Error("Expected script text output");
   }
+
   return JSON.parse(last.text);
 };
 
@@ -157,15 +169,18 @@ describe("native Pi Codemode Advisor composition", () => {
             reattachedAdvice: "Earlier advice",
           }),
         });
+
         const script = await h.run("return await tools.ask_advisor({})");
         const value = scriptValue(script);
         expect(script.isError).toBeUndefined();
         expect(value.jev).toEqual({ kind, reason: "test skip", skipped: true });
         expect(value.adviceId).toBeUndefined();
         expect(value.text).toBe(h.results[0].content[0].text);
+
         if (kind === "repeat") {
           expect(value.text).toContain("Earlier advice");
         }
+
         expect(h.session.consumedCalls).toBe(0);
       });
     }
@@ -186,9 +201,11 @@ describe("native Pi Codemode Advisor composition", () => {
   test("forwards existing draft and Git context arguments without a new evidence API", async () => {
     await withAgentDir(config, async (cwd) => {
       const received: unknown[][] = [];
+
       const h = harness(cwd, {
         consult: async (...args) => {
           received.push(args);
+
           return {
             adviceId: "draft-advice",
             markdown: "Review notes",
@@ -198,9 +215,11 @@ describe("native Pi Codemode Advisor composition", () => {
           };
         },
       });
+
       const script = await h.run(
         'const draft = JSON.stringify({ tests: { exit_code: 0 } }); return await tools.ask_advisor({ draft, gitContext: "full" })'
       );
+
       expect(script.isError).toBeUndefined();
       expect(received[0]?.[5]).toBe("full");
       expect(received[0]?.[6]).toBe('{"tests":{"exit_code":0}}');
@@ -227,12 +246,14 @@ describe("native Pi Codemode Advisor composition", () => {
               draft,
               gitContext,
             });
+
             expect(context.draftText).toContain("[REDACTED SECRET]");
             expect(context.draftText).not.toContain("hunter2");
             expect(
               Buffer.byteLength(context.draftText ?? "", "utf-8")
             ).toBeLessThanOrEqual(8192);
             expect(context.changeText).toContain("withheld");
+
             return {
               adviceId: "bounded-draft",
               markdown: "Unverified draft reviewed",
@@ -242,9 +263,11 @@ describe("native Pi Codemode Advisor composition", () => {
             };
           },
         });
+
         const script = await h.run(
           'return await tools.ask_advisor({ draft: "password=hunter2\\n" + "x".repeat(10000), gitContext: "full" })'
         );
+
         expect(script.isError).toBeUndefined();
         expect(scriptValue(script).adviceId).toBe("bounded-draft");
       }
@@ -258,15 +281,19 @@ describe("native Pi Codemode Advisor composition", () => {
           throw new Error("Provider unavailable");
         },
       });
+
       const failure = await h.run(
         "try { await tools.ask_advisor({}); } catch (error) { return error.message; }"
       );
+
       expect(scriptText(failure)).toContain("Provider unavailable");
       expect(h.results[0].structuredContent).toBeUndefined();
       h.session.block("Existing session block");
+
       const blocked = await h.run(
         "try { await tools.ask_advisor({}); } catch (error) { return error.message; }"
       );
+
       expect(scriptText(blocked)).toContain("Existing session block");
       expect(h.session.blocked).toBe(true);
       expect(h.session.consumedCalls).toBe(1);

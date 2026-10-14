@@ -43,6 +43,7 @@ const originalAgentDir = process.env.PI_CODING_AGENT_DIR;
 let agentDir = "";
 
 const configPath = () => join(agentDir, "advisor.json");
+
 const readSavedConfig = () =>
   // SAFETY: advisor.json is flat JSON written by saveConfig in these fixtures.
   JSON.parse(readFileSync(configPath(), "utf-8")) as Record<string, JsonValue>;
@@ -56,6 +57,7 @@ describe("Advisor config persistence", () => {
   afterEach(() => {
     resetConfigCache();
     rmSync(agentDir, { force: true, recursive: true });
+
     if (originalAgentDir === undefined) {
       delete process.env.PI_CODING_AGENT_DIR;
     } else {
