@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## Unreleased
 
+## 0.13.2 - 2026-10-14
+
 ### Changed
 
 - Updated development dependencies: Pi packages to 1.2.0, Oxlint and plugins to 1.88.0, Oxfmt to 0.73.0, TypeBox to 1.3.37, and Ultracite to 8.0.1; adopted Ultracite 8's readable-spacing rule across the codebase and excluded the deliberately JSON-shaped benchmark `traps.toml` fixtures from Oxfmt's new TOML support.
