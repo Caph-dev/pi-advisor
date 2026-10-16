@@ -13,6 +13,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Changed
 
 - Updated development dependencies: Pi packages (`pi-ai`, `pi-coding-agent`, `pi-tui`) to 1.3.0 and TypeBox to 1.4.1; the supported peer range stays `^1.0.0`. The codemode composition tests now retry while Pi's process-wide codemode worker limit still counts finished workers as shutting down, matching Pi 1.3.0's admission behavior.
+- Removed dead code surfaced by a Knip audit: the unused `writeJevClassifierKeyCandidate` and `hasRuntimeSecretStore` helpers and the unreferenced `TurnGateQuestions` and `SettingValue` types are gone, about thirty further module-internal symbols are no longer exported, and the turn-gate result renderer now derives its partial details type from the turn-gate contract to reduce type drift.
+- Knip now runs as a CI gate and passes from a clean configuration: the audit wrapper is invoked through `bun run` so Knip resolves it, and redundant ignore patterns were dropped from `knip.json`.
 - Jev screening and turn-gate now use Pi's native classifier registry instead of pi-advisor's duplicate Jev inference clients. Existing screening policy is unchanged; provider authentication stays Pi-managed, and screening classifier input cost uses the selected model's Pi catalog rates.
 - Screening classifier usage is included once with Advisor usage in `ask_advisor` tool totals. Manual and turn-gate classifier usage remains in the local Jev summary.
 

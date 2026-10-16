@@ -31,7 +31,7 @@
   "main": "dist/index.js",
   "types": "extensions/index.ts",
   "scripts": {
-    "audit": "bun scripts/audit.mjs",
+    "audit": "bun run scripts/audit.mjs",
     "bench:decisions": "bun bench/src/cli.ts decisions",
     "bench:evaluate": "bun bench/src/cli.ts evaluate",
     "bench:replay": "bun bench/src/cli.ts replay",
