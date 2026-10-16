@@ -6,6 +6,8 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## Unreleased
 
+## 0.14.0 - 2026-10-16
+
 ### Added
 
 - Added a dedicated masked Jev API Key option with isolated secure storage. Keys entered through this option are never migrated from legacy Jev stores or Pi provider credentials.
@@ -17,7 +19,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Knip now runs as a CI gate and passes from a clean configuration: the audit wrapper is invoked through `bun run` so Knip resolves it, and redundant ignore patterns were dropped from `knip.json`.
 - Jev screening and turn-gate now use Pi's native classifier registry instead of pi-advisor's duplicate Jev inference clients. Existing screening policy is unchanged; provider authentication stays Pi-managed, and screening classifier input cost uses the selected model's Pi catalog rates.
 - Screening classifier usage is included once with Advisor usage in `ask_advisor` tool totals. Manual and turn-gate classifier usage remains in the local Jev summary.
-
 - The Executor now follows the model and thinking level of the current Pi session by default. `/advisor` no longer asks for or switches to an Executor model, and `/model` selections are not saved as the Executor. Pick an explicit Executor in `/advisor-models`, via `executor=` on `/advisor`, or in `advisor.json` to pin one; choose **Current session model** in `/advisor-models` to return to following the session.
 
 ## 0.13.2 - 2026-10-14
