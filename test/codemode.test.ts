@@ -11,6 +11,9 @@ import { withAgentDir } from "./helpers/config-fixture.ts";
 import { asExtensionContext } from "./helpers/extension-context.ts";
 import { mockPi } from "./helpers/mock-pi.ts";
 
+const scriptText = (result: any) =>
+  result.content.map((item: any) => item.text).join("\n");
+
 const harness = (
   cwd: string,
   dependencies: ToolRegistrationDependencies = {},
@@ -48,7 +51,7 @@ const harness = (
   let ordinal = 0;
   const results: any[] = [];
 
-  const run = (code: string) =>
+  const runOnce = (code: string) =>
     // SAFETY: this fixture supplies every context member the real Codemode executor consumes.
     executeCodemode("code", { code }, undefined, undefined, {
       ...ctx,
@@ -107,11 +110,28 @@ const harness = (
       tools: [tool],
     } as any);
 
+  // Pi 1.3.0 caps live codemode workers process-wide and counts workers until
+  // they actually exit; on Bun a finished worker can still be shutting down when
+  // the next back-to-back script starts. No tool calls run before the limit
+  // error, so retrying does not duplicate fixture state.
+  const run = async (code: string) => {
+    for (let attempt = 0; ; attempt += 1) {
+      const script = await runOnce(code);
+
+      const limitHit =
+        Boolean(script.isError) &&
+        scriptText(script).includes("Codemode worker limit reached");
+
+      if (!limitHit || attempt >= 40) {
+        return script;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 25));
+    }
+  };
+
   return { ctx, results, run, session, tool };
 };
-
-const scriptText = (result: any) =>
-  result.content.map((item: any) => item.text).join("\n");
 
 const scriptValue = (result: Awaited<ReturnType<typeof executeCodemode>>) => {
   const last = result.content.at(-1);
