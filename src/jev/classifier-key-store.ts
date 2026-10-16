@@ -194,10 +194,3 @@ export const consumeJevClassifierKey = async () => {
 
   return stored.key;
 };
-
-export const writeJevClassifierKeyCandidate = async (key: string) => {
-  const previous = await readJevClassifierKey();
-  const written = await writeJevClassifierKey(key);
-
-  return { previous, written };
-};

@@ -151,7 +151,7 @@ export interface JevProviderSelection {
   transport: JevTransport;
 }
 
-export interface JevSetupResult {
+interface JevSetupResult {
   message?: string;
   ok: boolean;
 }
@@ -235,5 +235,3 @@ export interface TextSettingSubmenuOptions {
   title: string;
   tui: RenderRequester;
 }
-
-export type SettingValue = string | undefined;

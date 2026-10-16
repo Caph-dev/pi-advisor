@@ -10,6 +10,7 @@ import { Box, Markdown, Text } from "@earendil-works/pi-tui";
 import { getAdvisorSettings } from "../config/state.ts";
 import { isString } from "../content-utils.ts";
 import { formatAdvisorUsage } from "../usage.ts";
+import type { TurnGateResultDetails as TurnGateResultRecord } from "./jev-turn-gate.ts";
 import { adviceForDisplay, renderAdvisorCallBox } from "./render-common.ts";
 import { renderScoutDetails } from "./scout-status.ts";
 import type { GateDecision, ScoutToolDetails } from "./types.ts";
@@ -18,12 +19,8 @@ interface CallMessageDetails {
   question?: string;
 }
 
-interface TurnGateResultDetails {
-  advisor?: string;
-  agentRulesBytes?: number;
-  text?: string;
-  usage?: unknown;
-}
+// Renderers must tolerate partial details from replayed or older messages.
+type TurnGateResultDetails = Partial<TurnGateResultRecord>;
 
 interface LoopResultDetails {
   advisor?: string;

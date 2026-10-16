@@ -61,10 +61,6 @@ export const nativeScreeningQuestions = {
   },
 } satisfies Record<string, ClassifierQuestion>;
 
-export interface TurnGateQuestions {
-  instructions: string;
-}
-
 export interface ScreeningCriteria {
   noulMargin: number;
   skipConfidence: number;

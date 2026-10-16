@@ -1,7 +1,7 @@
 import type { Message } from "@earendil-works/pi-ai/compat";
 
 export const FOLLOW_UP_TTL_MS = 5 * 60 * 1000;
-export const FOLLOW_UP_MAX_DEPTH = 3;
+const FOLLOW_UP_MAX_DEPTH = 3;
 export const FOLLOW_UP_MAX_TOOL_CALLS = 3;
 
 export interface AdvisorFollowUpPayload {

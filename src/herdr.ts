@@ -13,8 +13,6 @@ export { HerdrAdvisorBlock } from "./herdr-block.ts";
 
 export {
   createHerdrNotificationRequest,
-  type HerdrMetadataRequest,
-  type HerdrNotificationRequest,
   setHerdrBlockedEmitter,
 } from "./herdr-shared.ts";
 

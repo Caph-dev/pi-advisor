@@ -6,13 +6,13 @@ import { JevFailureError } from "./failure.ts";
 export const OPENAI_DECISIONS_ENDPOINT = "https://api.openai.com/v1/decisions";
 export const OPENAI_DECISIONS_MODEL = "gpt-6-luna";
 
-export interface DecisionsPredicateQuestion {
+interface DecisionsPredicateQuestion {
   instructions: string;
   name: string;
   type: "predicate";
 }
 
-export interface DecisionsScoreLevel {
+interface DecisionsScoreLevel {
   description: string;
   label: string;
 }

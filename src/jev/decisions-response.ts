@@ -7,7 +7,7 @@ import type {
 } from "./decisions-client.ts";
 import { JevFailureError } from "./failure.ts";
 
-export interface DecisionsUsage {
+interface DecisionsUsage {
   inputTokens: number;
   outputTokens: number;
 }

@@ -19,7 +19,7 @@ export type JevTransportKind =
   | "openai-decisions"
   | "typesafe-compatible";
 
-export type JevCredentialSource =
+type JevCredentialSource =
   | JevKeySource
   | "openai-env"
   | "openai-provider-credential"
@@ -40,7 +40,7 @@ export interface JevEndpointTarget {
   keyProvider?: string;
 }
 
-export interface JevProviderAuthResult {
+interface JevProviderAuthResult {
   auth: { apiKey?: string };
   source?: string;
 }

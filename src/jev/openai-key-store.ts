@@ -16,7 +16,7 @@ export const OPENAI_DECISIONS_KEY_SERVICE = "pi-advisor";
 export const OPENAI_DECISIONS_KEY_NAME = "openai-decisions-api-key";
 const KEY_FILE_MODE = 0o600;
 
-export type OpenAIDecisionsKeySource = "openai-bun-secrets" | "openai-file";
+type OpenAIDecisionsKeySource = "openai-bun-secrets" | "openai-file";
 
 export interface OpenAIDecisionsKeyResolution {
   key?: string;

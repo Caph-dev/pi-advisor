@@ -5,11 +5,6 @@ import {
 
 import type { GitContextLevel } from "../git.ts";
 
-export {
-  DEFAULT_MAX_BYTES,
-  DEFAULT_MAX_LINES,
-} from "@earendil-works/pi-coding-agent";
-
 export const DEFAULT_CONTEXT_MAX_CHARS = 15_000;
 export const MAX_CONTEXT_MAX_CHARS = Number.MAX_SAFE_INTEGER;
 const DEFAULT_ADVISOR_TOOL_RESULT_MAX_LINES = PI_DEFAULT_MAX_LINES;

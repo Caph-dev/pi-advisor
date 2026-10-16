@@ -75,7 +75,7 @@ export const imageMarker = (
   return `[Image ref=img_${id}; pixels reviewed only if attached below]`;
 };
 
-export interface SelectedImage {
+interface SelectedImage {
   image: ImageContent;
   marker: string;
 }

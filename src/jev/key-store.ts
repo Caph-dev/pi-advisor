@@ -27,7 +27,7 @@ export interface JevKeyStoreResult {
   ok: boolean;
 }
 
-export interface JevSecretEntry {
+interface JevSecretEntry {
   name: string;
   service: string;
 }
@@ -50,10 +50,10 @@ export interface JevKeyStoreDeps {
   writeFileStore?: (key: string) => void;
 }
 
-export const TYPESAFE_KEY_ENV_VAR = "TYPESAFE_API_KEY";
-export const TYPESAFE_KEY_SERVICE = "pi-advisor";
-export const TYPESAFE_KEY_NAME = "typesafe-api-key";
-export const TYPESAFE_KEY_CONFIG_FIELD = "typesafe_api_key";
+const TYPESAFE_KEY_ENV_VAR = "TYPESAFE_API_KEY";
+const TYPESAFE_KEY_SERVICE = "pi-advisor";
+const TYPESAFE_KEY_NAME = "typesafe-api-key";
+const TYPESAFE_KEY_CONFIG_FIELD = "typesafe_api_key";
 
 const KEY_FILE_MODE = 0o600;
 
@@ -69,9 +69,6 @@ const runtimeSecrets = (): JevSecretsLike | undefined => {
 
   return bun.Bun?.secrets;
 };
-
-/** Whether the current runtime offers a Bun.secrets store. */
-export const hasRuntimeSecretStore = () => runtimeSecrets() !== undefined;
 
 const normalizeKey = (value: string | null | undefined): string | undefined =>
   value?.trim() || undefined;

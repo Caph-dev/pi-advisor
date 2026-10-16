@@ -16,19 +16,19 @@ import type { JevState } from "./state.ts";
 
 export type JevQuestionSet = ClassifierContext["questions"];
 
-export interface JevBooleanPolicyAnswer {
+interface JevBooleanPolicyAnswer {
   noul: number;
   type: "noul";
 }
 
-export interface JevChoicePolicyAnswer {
+interface JevChoicePolicyAnswer {
   choice: string;
   confidence: number;
   probabilities: Record<string, number>;
   type: "choice";
 }
 
-export type JevPolicyAnswer = JevBooleanPolicyAnswer | JevChoicePolicyAnswer;
+type JevPolicyAnswer = JevBooleanPolicyAnswer | JevChoicePolicyAnswer;
 
 export interface JevAnswers {
   self_answerable?: JevPolicyAnswer;
@@ -36,7 +36,7 @@ export interface JevAnswers {
   stakes?: JevPolicyAnswer;
 }
 
-export interface JevClassifierUsage {
+interface JevClassifierUsage {
   cost?: number;
   inputTokens: number;
   outputTokens: number;

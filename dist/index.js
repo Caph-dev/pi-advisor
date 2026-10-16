@@ -3,10 +3,6 @@ import {
   DEFAULT_MAX_BYTES as PI_DEFAULT_MAX_BYTES,
   DEFAULT_MAX_LINES as PI_DEFAULT_MAX_LINES
 } from "@earendil-works/pi-coding-agent";
-import {
-  DEFAULT_MAX_BYTES,
-  DEFAULT_MAX_LINES
-} from "@earendil-works/pi-coding-agent";
 var DEFAULT_CONTEXT_MAX_CHARS = 15000;
 var MAX_CONTEXT_MAX_CHARS = Number.MAX_SAFE_INTEGER;
 var DEFAULT_ADVISOR_TOOL_RESULT_MAX_LINES = PI_DEFAULT_MAX_LINES;

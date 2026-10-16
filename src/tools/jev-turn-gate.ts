@@ -32,7 +32,7 @@ export interface JevTurnGateDeps {
   selectedRef?: () => string | undefined;
 }
 
-export interface TurnGateCallDetails {
+interface TurnGateCallDetails {
   question: string;
   turn: number;
 }

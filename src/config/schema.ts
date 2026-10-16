@@ -124,7 +124,7 @@ export const isValidToolResultMaxLines = (value: unknown): value is number =>
 export const isValidToolResultMaxBytes = (value: unknown): value is number =>
   nonNegativeSafeInteger(value);
 
-export const isValidJevTimeoutMs = (value: unknown): value is number =>
+const isValidJevTimeoutMs = (value: unknown): value is number =>
   typeof value === "number" && Number.isSafeInteger(value) && value >= 1;
 
 const isValidScoutTimeoutMs = (value: unknown): value is number =>
@@ -133,19 +133,19 @@ const isValidScoutTimeoutMs = (value: unknown): value is number =>
   value >= 1 &&
   value <= MAX_SCOUT_TIMEOUT_MS;
 
-export const isValidJevDigestMaxChars = (value: unknown): value is number =>
+const isValidJevDigestMaxChars = (value: unknown): value is number =>
   nonNegativeSafeInteger(value);
 
-export const isValidJevPricePerMtok = (value: unknown): value is number =>
+const isValidJevPricePerMtok = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value) && value > 0;
 
-export const isValidJevSkipConfidence = (value: unknown): value is number =>
+const isValidJevSkipConfidence = (value: unknown): value is number =>
   typeof value === "number" &&
   Number.isFinite(value) &&
   value >= 0.5 &&
   value <= 1;
 
-export const isValidJevNoulMargin = (value: unknown): value is number =>
+const isValidJevNoulMargin = (value: unknown): value is number =>
   typeof value === "number" &&
   Number.isFinite(value) &&
   value >= 0 &&
@@ -153,15 +153,15 @@ export const isValidJevNoulMargin = (value: unknown): value is number =>
 
 const JEV_TRANSPORT_NAMES = new Set<string>(JEV_TRANSPORTS);
 
-export const isValidJevTransport = (value: unknown): value is JevTransport =>
+const isValidJevTransport = (value: unknown): value is JevTransport =>
   isString(value) && JEV_TRANSPORT_NAMES.has(value);
 
 /** An empty value clears the endpoint; anything else must be a usable Base URL. */
-export const isValidJevBaseUrl = (value: unknown): value is string =>
+const isValidJevBaseUrl = (value: unknown): value is string =>
   isString(value) &&
   (value.trim() === "" || normalizeJevBaseUrl(value).baseUrl !== undefined);
 
-export const isValidJevKeyProvider = (value: unknown): value is string =>
+const isValidJevKeyProvider = (value: unknown): value is string =>
   isString(value) && (value.trim() === "" || !/\s/u.test(value.trim()));
 
 /** One declarative entry per AdvisorConfig key: JSON type, persistence, and

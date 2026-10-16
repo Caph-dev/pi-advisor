@@ -23,11 +23,9 @@ import { JevFailureError } from "./failure.ts";
 import type { JevErrorCategory } from "./failure.ts";
 import type { JevCredentials, JevTransportKind } from "./transport.ts";
 
-export type { JevErrorCategory } from "./failure.ts";
-
 export { JevFailureError as JevFailure } from "./failure.ts";
 
-export interface JevUsage {
+interface JevUsage {
   cost?: number;
   inputTokens: number;
   outputTokens: number;

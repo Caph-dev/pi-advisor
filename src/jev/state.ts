@@ -9,7 +9,7 @@ import { recentConversation } from "../conversation.ts";
 import { redactAndCapText } from "../redaction.ts";
 
 /** Per-field byte cap for executor question and draft sent to Jev. */
-export const JEV_TEXT_CAP_BYTES = 8 * 1024;
+const JEV_TEXT_CAP_BYTES = 8 * 1024;
 
 export interface JevStateInput {
   draft?: string;

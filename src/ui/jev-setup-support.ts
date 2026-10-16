@@ -207,7 +207,7 @@ export const keyEntryPrompt = (transport: JevTransportKind): string => {
   return "Paste a TypeSafe API key";
 };
 
-export const defaultVerify = async (credentials: JevCredentials) => {
+const defaultVerify = async (credentials: JevCredentials) => {
   const client = jevClientFromCredentials(credentials);
 
   try {

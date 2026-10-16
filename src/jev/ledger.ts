@@ -1,6 +1,6 @@
 import { formatTokenCount } from "../usage.ts";
 
-export interface AdvisorJevUsageTotals {
+interface AdvisorJevUsageTotals {
   cost: number;
   inputTokens: number;
   outputTokens: number;
@@ -8,7 +8,7 @@ export interface AdvisorJevUsageTotals {
   knownCostCalls: number;
 }
 
-export interface AdvisorJevFilterLedger {
+interface AdvisorJevFilterLedger {
   allowed: number;
   failures: number;
   overrides: number;
@@ -17,7 +17,7 @@ export interface AdvisorJevFilterLedger {
   skipped: number;
 }
 
-export interface AdvisorJevGateLedger {
+interface AdvisorJevGateLedger {
   checks: number;
   consultations: number;
   failures: number;
