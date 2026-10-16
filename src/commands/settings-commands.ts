@@ -9,10 +9,10 @@ import {
 } from "../config/state.ts";
 import { loadConfig, saveConfig } from "../config/storage.ts";
 import {
-  resolveJevTransport,
-  resolveJevTransportFor,
-  resolveTypesafeCompatibleCredentials,
-} from "../jev/transport.ts";
+  readJevClassifierKey,
+  restoreJevClassifierKey,
+  writeJevClassifierKey,
+} from "../jev/classifier-key-store.ts";
 import { AdvisorSettingsSelector } from "../ui/settings-selector.ts";
 import type { AdvisorSettings } from "../ui/types.ts";
 import { loadCommandConfig } from "./activation-preparation.ts";
@@ -70,12 +70,10 @@ export const registerSettingsCommands = (runtime: CommandRuntime) => {
             effortLevels: EFFORT_LEVELS,
             initial,
             jevSetupDeps: {
-              resolveEndpoint: (options) =>
-                resolveTypesafeCompatibleCredentials(options, ctx),
-              resolveTransport: (transport) =>
-                transport
-                  ? resolveJevTransportFor(transport, ctx)
-                  : resolveJevTransport(ctx),
+              modelRegistry: ctx.modelRegistry,
+              persistClassifierKey: writeJevClassifierKey,
+              resolveClassifierKey: readJevClassifierKey,
+              restoreClassifierKey: restoreJevClassifierKey,
             },
             keybindings,
             modelRefs: getConfiguredModelRefs(ctx),
