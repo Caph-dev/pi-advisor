@@ -1,6 +1,6 @@
 {
   "name": "pi-advisor-flow",
-  "version": "0.14.0",
+  "version": "0.14.1",
   "description": "Advanced Executor/Advisor flow for Pi, fully configurable and extendable.",
   "keywords": [
     "advisor",
@@ -62,11 +62,11 @@
     "@typesafe-ai/sdk": "^0.7.0",
     "bun-types": "1.4.3",
     "husky": "^9.1.7",
-    "knip": "6.41.0",
+    "knip": "6.42.0",
     "lint-staged": "^17.6.0",
     "oxfmt": "0.73.0",
     "oxlint": "1.88.0",
-    "typebox": "^1.4.1",
+    "typebox": "^1.4.2",
     "typescript": "^7.0.2",
     "ultracite": "8.0.1"
   },

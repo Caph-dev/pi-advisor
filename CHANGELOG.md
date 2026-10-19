@@ -6,6 +6,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## Unreleased
 
+## 0.14.1 - 2026-10-19
+
+### Changed
+
+- Updated development dependencies: Knip to 6.42.0 and TypeBox to 1.4.2; the supported TypeBox peer range remains `^1.1.38`.
+
 ### Fixed
 
 - Preserve the Executor's cached prompt prefix when Advisor call budgets change, including providers that collapse mid-conversation system messages. Current allowances are appended as hidden conversation messages at run start and after consultation turns, with explicit unlimited and Simple mode reports.
