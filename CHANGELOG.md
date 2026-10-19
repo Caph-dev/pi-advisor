@@ -6,6 +6,10 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## Unreleased
 
+### Changed
+
+- Updated Oxfmt to 0.74.0.
+
 ## 0.14.1 - 2026-10-19
 
 ### Changed
