@@ -8,7 +8,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
-- Updated Oxfmt to 0.74.0.
+- Updated Oxfmt to 0.74.0, Oxlint and plugins to 1.89.0, and Knip to 6.42.1; adjusted tests for the updated Oxlint rules.
 
 ## 0.14.1 - 2026-10-19
 
